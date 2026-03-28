@@ -1,0 +1,25 @@
+{
+  "name": "Consultorio Dental",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp para gestión de citas dentales",
+  "main": "bot.py",
+  "env": {
+    "BACKEND_URL": {
+      "description": "URL de tu backend Flask",
+      "required": true
+    },
+    "API_KEY": {
+      "description": "Clave API para autenticación",
+      "required": true
+    }
+  },
+  "webhook": {
+    "path": "/webhook",
+    "method": "POST"
+  },
+  "features": {
+    "auto_reply": true,
+    "session_management": true,
+    "media_handling": true
+  }
+}

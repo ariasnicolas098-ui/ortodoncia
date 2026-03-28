@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultorio Dental - Búsqueda Inteligente</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+    }
+
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+    }
+
+    /* BOTÓN AL PANEL ADMIN - NUEVO */
+    .admin-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .admin-btn:hover {
+        background: white;
+        color: #667eea;
+        transform: translateY(-2px);
+    }
+
+    .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .header p { opacity: 0.9; font-size: 1.1em; }
+
+    .search-section {
+        padding: 40px;
+        background: #f8f9fa;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 15px;
+        max-width: 700px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+    }
+
+    .input-wrapper {
+        flex: 1;
+        position: relative;
+        min-width: 250px;
+    }
+
+    #searchInput {
+        width: 100%;
+        padding: 18px 25px;
+        font-size: 18px;
+        border: 2px solid #e0e0e0;
+        border-radius: 50px;
+        outline: none;
+        transition: all 0.3s;
+    }
+
+    #searchInput:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .mic-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: none;
+        background: #f44336;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        position: relative;
+    }
+
+    .mic-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6);
+    }
+
+    .mic-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .mic-btn.listening {
+        background: #4CAF50;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+    }
+
+    .search-btn {
+        padding: 18px 35px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .search-btn:hover {
+        background: #5a67d8;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .status {
+        text-align: center;
+        margin-top: 15px;
+        color: #666;
+        font-size: 14px;
+        min-height: 20px;
+    }
+
+    .status.listening { color: #4CAF50; font-weight: bold; }
+    .status.error { color: #f44336; }
+    .status.info { color: #2196F3; }
+
+    /* ALTERNATIVAS DE VOZ - NUEVO */
+    .voice-alternatives {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+        display: none;
+    }
+
+    .voice-alternatives.show { display: block; }
+
+    .mobile-hint {
+        font-size: 0.9em;
+        color: #856404;
+        margin-top: 10px;
+    }
+
+    .results-section {
+        padding: 40px;
+        min-height: 400px;
+    }
+
+    .no-results {
+        text-align: center;
+        color: #999;
+        font-size: 1.2em;
+        margin-top: 50px;
+    }
+
+    .patient-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        border-left: 5px solid #667eea;
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .patient-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .patient-name { font-size: 1.8em; color: #333; font-weight: bold; }
+    .patient-id {
+        background: #667eea;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9em;
+    }
+
+    .patient-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .info-item {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 10px;
+    }
+
+    .info-label {
+        font-size: 0.85em;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+
+    .info-value {
+        font-size: 1.1em;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .history-section { margin-top: 25px; }
+    
+    .history-title {
+        font-size: 1.3em;
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .history-item {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #4CAF50;
+        transition: transform 0.2s;
+    }
+
+    .history-item:hover { transform: translateX(5px); background: #f0f0f0; }
+
+    .history-date { color: #667eea; font-weight: bold; font-size: 0.95em; margin-bottom: 8px; }
+    .history-procedure { font-size: 1.1em; color: #333; font-weight: 600; margin-bottom: 5px; }
+    .history-details { color: #666; font-size: 0.95em; line-height: 1.5; }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 500;
+        margin-top: 8px;
+        margin-right: 5px;
+    }
+
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+    .badge-success { background: #d4edda; color: #155724; }
+
+    /* SECCIÓN DE ARCHIVOS - NUEVO */
+    .files-section {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .file-item {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+
+    .file-item:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+    .file-icon { font-size: 3em; margin-bottom: 10px; }
+    .file-name { font-size: 0.9em; color: #333; word-break: break-word; }
+    .file-date { font-size: 0.8em; color: #999; margin-top: 5px; }
+
+    /* TARJETAS DE ARCHIVOS EN ADMIN - NUEVO */
+    .file-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .file-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border-color: #667eea;
+    }
+
+    .file-icon-big {
+        font-size: 3em;
+        margin-bottom: 10px;
+    }
+
+    .file-meta {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .delete-file {
+        background: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        font-size: 0.8em;
+        transition: all 0.2s;
+    }
+
+    .delete-file:hover {
+        background: #d32f2f;
+        transform: scale(1.05);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 50px;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+        .search-box { flex-direction: column; }
+        .mic-btn { width: 100%; height: 50px; border-radius: 25px; }
+        .patient-header { flex-direction: column; align-items: flex-start; }
+        
+        /* BOTÓN ADMIN RESPONSIVE - NUEVO */
+        .admin-btn {
+            position: static;
+            margin-top: 15px;
+            display: inline-block;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+    <a href="/admin" class="admin-btn">⚙️ Panel Admin</a>
+    <h1>🏥 Consultorio Dental</h1>
+    <p>Búsqueda de pacientes por voz o texto</p>
+</div>
+
+        <div class="search-section">
+            <div class="search-box">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Diga o escriba el nombre del paciente..."
+                        autocomplete="off"
+                        x-webkit-speech
+                    >
+                </div>
+                <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Buscar por voz">
+                    🎤
+                </button>
+                <button class="search-btn" onclick="buscarPaciente()">
+                    Buscar
+                </button>
+            </div>
+            
+            <div class="status" id="status"></div>
+            
+            <div class="voice-alternatives" id="voiceAlt">
+                <strong>🎙️ Alternativas de entrada de voz:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><b>En móvil:</b> Toque el teclado y use el micrófono nativo ⌨️🎤</li>
+                    <li><b>En PC:</b> Use Windows+H (Herramienta de dictado de Windows)</li>
+                    <li><b>Chrome:</b> Asegúrese de usar http://localhost:5000 (no IP)</li>
+                </ul>
+                <div class="mobile-hint">
+                    💡 <b>Tip:</b> En celulares, al tocar el campo de texto aparece el micrófono en el teclado
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultados">
+            <div class="no-results">
+                🔍 Ingrese un nombre para buscar el historial del paciente<br>
+                <small style="font-size: 0.8em; color: #999;">O use el botón 🎤 si su navegador lo soporta</small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const micBtn = document.getElementById('micBtn');
+        const status = document.getElementById('status');
+        const resultados = document.getElementById('resultados');
+        const voiceAlt = document.getElementById('voiceAlt');
+        
+        let recognition;
+        let isListening = false;
+
+        // Verificar soporte de reconocimiento de voz
+        function checkVoiceSupport() {
+            const isSecure = window.location.protocol === 'https:' || 
+                             window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1';
+            
+            const hasSpeechAPI = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            
+            if (!isSecure) {
+                status.innerHTML = '⚠️ Use <b>localhost:5000</b> para activar el micrófono';
+                micBtn.disabled = true;
+                voiceAlt.classList.add('show');
+                return false;
+            }
+            
+            if (!hasSpeechAPI) {
+                status.innerHTML = 'ℹ️ Su navegador no soporta reconocimiento de voz';
+                micBtn.disabled = true;
+                voiceAlt.classList.add('show');
+                
+                // En móviles, el teclado nativo tiene micrófono
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    status.innerHTML = '💡 Use el micrófono de su teclado al escribir';
+                }
+                return false;
+            }
+            
+            return true;
+        }
+
+        function initSpeechRecognition() {
+            if (!checkVoiceSupport()) return false;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.lang = 'es-ES';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('listening');
+                status.innerHTML = '🎙️ <b>Escuchando...</b> Diga el nombre del paciente';
+                status.classList.add('listening');
+                searchInput.placeholder = "Escuchando...";
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (interimTranscript) {
+                    searchInput.value = interimTranscript;
+                }
+                
+                if (finalTranscript) {
+                    searchInput.value = finalTranscript;
+                    status.innerHTML = `✅ Escuchado: "<b>${finalTranscript}</b>"`;
+                    setTimeout(() => buscarPaciente(finalTranscript), 500);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Error:', event.error);
+                let msg = '❌ Error al escuchar';
+                
+                switch(event.error) {
+                    case 'no-speech': msg = '❌ No se detectó voz. Intente más cerca del micrófono.'; break;
+                    case 'audio-capture': msg = '❌ No se encontró micrófono.'; break;
+                    case 'not-allowed': 
+                        msg = '❌ Permiso denegado. Haga clic en 🔒 y permita micrófono.'; 
+                        voiceAlt.classList.add('show');
+                        break;
+                    case 'network': msg = '❌ Error de red. Verifique conexión.'; break;
+                    case 'aborted': msg = ''; break;
+                }
+                
+                if (msg) status.innerHTML = msg;
+                resetMic();
+            };
+
+            recognition.onend = () => {
+                resetMic();
+            };
+
+            return true;
+        }
+
+        function resetMic() {
+            isListening = false;
+            micBtn.classList.remove('listening');
+            searchInput.placeholder = "Diga o escriba el nombre del paciente...";
+            status.classList.remove('listening');
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                if (!initSpeechRecognition()) return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    status.innerHTML = '❌ Error al iniciar. Recargue la página.';
+                }
+            }
+        }
+
+        // Buscar al presionar Enter
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscarPaciente();
+        });
+
+        async function buscarPaciente(nombre = null) {
+            const query = nombre || searchInput.value.trim();
+            
+            if (!query) {
+                resultados.innerHTML = '<div class="no-results">⚠️ Ingrese un nombre para buscar</div>';
+                return;
+            }
+
+            resultados.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Buscando paciente...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/buscar?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                mostrarResultados(data, query);
+            } catch (error) {
+                resultados.innerHTML = `
+                    <div class="no-results" style="color: #f44336;">
+                        ❌ Error de conexión. Verifique que el servidor esté corriendo.
+                    </div>
+                `;
+            }
+        }
+
+        function mostrarResultados(data, query) {
+            if (data.length === 0) {
+                resultados.innerHTML = `
+                    <div class="no-results">
+                        😕 No se encontraron pacientes con "${query}"<br>
+                        <small>Intente con otro nombre o <a href="/admin" style="color: #667eea;">registre un nuevo paciente</a></small>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            data.forEach(paciente => {
+                const tieneAlergias = paciente.alergias && paciente.alergias !== 'Ninguna' && paciente.alergias !== '';
+                const tieneCondiciones = paciente.condiciones_medicas && paciente.condiciones_medicas !== 'Ninguna' && paciente.condiciones_medicas !== '';
+                
+                html += `
+                    <div class="patient-card">
+                        <div class="patient-header">
+                            <div class="patient-name">${paciente.nombre_completo}</div>
+                            <div class="patient-id">ID: ${paciente.id}</div>
+                        </div>
+                        
+                        <div class="patient-info">
+                            <div class="info-item">
+                                <div class="info-label">DNI</div>
+                                <div class="info-value">${paciente.dni || 'No registrado'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Teléfono</div>
+                                <div class="info-value">${paciente.telefono || 'No registrado'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Email</div>
+                                <div class="info-value">${paciente.email || 'No registrado'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Fecha de Nacimiento</div>
+                                <div class="info-value">${formatearFecha(paciente.fecha_nacimiento) || 'No registrada'}</div>
+                            </div>
+                        </div>
+
+                        ${tieneAlergias ? `<span class="badge badge-warning">⚠️ Alergias: ${paciente.alergias}</span>` : ''}
+                        ${tieneCondiciones ? `<span class="badge badge-info">🏥 Condiciones: ${paciente.condiciones_medicas}</span>` : ''}
+                        ${paciente.medicamentos_actuales && paciente.medicamentos_actuales !== 'Ninguno' ? 
+                            `<span class="badge badge-success">💊 Meds: ${paciente.medicamentos_actuales}</span>` : ''}
+
+                        <div class="history-section">
+                            <div class="history-title">
+                                📋 Historial Odontológico 
+                                <span style="font-size: 0.7em; color: #666;">(${paciente.historial.length} registros)</span>
+                            </div>
+                            
+                            ${paciente.historial.length > 0 ? 
+                                paciente.historial.map(h => `
+                                    <div class="history-item">
+                                        <div class="history-date">📅 ${formatearFecha(h.fecha_consulta)}</div>
+                                        <div class="history-procedure">${h.procedimiento}</div>
+                                        <div class="history-details">
+                                            <strong>Diagnóstico:</strong> ${h.diagnostico}<br>
+                                            <strong>Tratamiento:</strong> ${h.tratamiento_realizado}<br>
+                                            ${h.dientes_tratados ? `<strong>Dientes:</strong> ${h.dientes_tratados}<br>` : ''}
+                                            ${h.observaciones ? `<em>📝 ${h.observaciones}</em>` : ''}
+                                        </div>
+                                        ${h.proxima_cita ? `
+                                            <div style="margin-top: 10px; color: #667eea; font-size: 0.9em;">
+                                                📌 Próxima cita: ${formatearFecha(h.proxima_cita)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('') 
+                                : '<p style="color: #999; font-style: italic;">Sin historial registrado</p>'
+                            }
+                        </div>
+
+                        ${paciente.archivos && paciente.archivos.length > 0 ? `
+                            <div class="files-section">
+                                <div class="history-title">📎 Archivos y Radiografías</div>
+                                <div class="files-grid">
+                                    ${paciente.archivos.map(archivo => `
+                                        <div class="file-item" onclick="verArchivo('${archivo.ruta}')">
+                                            <div class="file-icon">${getFileIcon(archivo.tipo)}</div>
+                                            <div class="file-name">${archivo.nombre}</div>
+                                            <div class="file-date">${formatearFecha(archivo.fecha_subida)}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            resultados.innerHTML = html;
+        }
+
+        function getFileIcon(tipo) {
+            const icons = {
+                'radiografia': '🩻',
+                'foto': '📷',
+                'documento': '📄',
+                'pdf': '📑',
+                'default': '📎'
+            };
+            return icons[tipo] || icons['default'];
+        }
+
+        function verArchivo(ruta) {
+            window.open(`/uploads/${ruta}`, '_blank');
+        }
+
+        function formatearFecha(fechaStr) {
+            if (!fechaStr) return null;
+            const fecha = new Date(fechaStr);
+            if (isNaN(fecha)) return fechaStr;
+            return fecha.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Inicializar
+        initSpeechRecognition();
+    
+    </script>
+</body>
+</html>
