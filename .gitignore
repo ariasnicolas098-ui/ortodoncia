@@ -1,0 +1,24 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+ENV/
+
+# Base de datos
+consultorio_dental.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
