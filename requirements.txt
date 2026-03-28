@@ -1,5 +1,5 @@
 Flask==3.0.0
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.23.0
 Werkzeug==3.0.1
 gunicorn==23.0.0
+thefuzz==0.22.1
+rapidfuzz==3.13.0
