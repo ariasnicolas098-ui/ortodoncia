@@ -204,7 +204,7 @@ def buscar_paciente():
     
     # Búsqueda difusa si no hay resultados exactos
     if not resultado:
-        from fuzzywuzzy import fuzz
+        from thefuzz import fuzz
         cursor.execute("SELECT * FROM pacientes")
         todos = cursor.fetchall()
         
