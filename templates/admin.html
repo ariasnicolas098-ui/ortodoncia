@@ -614,7 +614,7 @@
     <nav class="navbar">
         <h1>🦷 Panel de Administración</h1>
         <div class="nav-links">
-            <a href="/">🔍 Buscador</a>
+            <a href="https://ortodoncia.onrender.com">🔍 Buscador</a>
             <a href="/admin" class="active">⚙️ Administración</a>
         </div>
     </nav>
@@ -881,23 +881,33 @@
                 </div>
 
                 <div class="recent-patients">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Teléfono</th>
-                                <th>Última Visita</th>
-                                <th>Próxima Cita</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaPacientes">
-                            <!-- Se llena con JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+<div id="pacientes" class="section">
+    <div class="card">
+        <h2 style="margin-bottom: 25px; color: #333;">Lista de Pacientes</h2>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <input type="text" id="buscarLista" placeholder="Buscar paciente..." 
+                   oninput="cargarPacientes(this.value)" style="max-width: 400px; padding: 12px;">
         </div>
+
+        <div class="recent-patients">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Última Visita</th>
+                        <th>Próxima Cita</th>
+                        <th>Acciones</th>   <!-- ← Nueva columna -->
+                    </tr>
+                </thead>
+                <tbody id="tablaPacientes">
+                    <!-- Se llena con JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
         <!-- Sección: Subir Archivos con Drag & Drop -->
         <div id="archivos" class="section">
@@ -1035,6 +1045,7 @@
     </div>
 
     <script>
+        const API_URL = "https://ortodoncia.onrender.com";
         // Variables globales
         let recognition;
         let pacientesCache = [];
@@ -1133,7 +1144,7 @@
             };
 
             try {
-                const res = await fetch('/api/pacientes', {
+                const res = await fetch('${API_URL}/api/pacientes', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -1159,7 +1170,7 @@
             }
 
             try {
-                const res = await fetch(`/api/buscar?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
                 
                 const lista = document.getElementById('listaPacientes');
@@ -1197,7 +1208,7 @@
             if (!fecha) return;
             
             try {
-                const res = await fetch(`/api/citas/disponibles?fecha=${fecha}`);
+                const res = await fetch(`${API_URL}/api/citas/disponibles?fecha=${fecha}`);
                 const horarios = await res.json();
                 
                 const container = document.getElementById('horariosContainer');
@@ -1256,7 +1267,7 @@
 
             try {
                 // Primero crear la cita
-                const resCita = await fetch('/api/citas', {
+                const resCita = await fetch('${API_URL}/api/citas', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -1273,7 +1284,7 @@
                 }
 
                 // Luego guardar la consulta
-                const resConsulta = await fetch('/api/consultas', {
+                const resConsulta = await fetch('${API_URL}/api/consultas', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -1305,7 +1316,7 @@
         // ========== LISTADO Y ESTADÍSTICAS ==========
         async function cargarEstadisticas() {
             try {
-                const res = await fetch('/api/estadisticas');
+                const res = await fetch('${API_URL}/api/estadisticas');
                 const data = await res.json();
                 
                 document.getElementById('totalPacientes').textContent = data.total_pacientes;
@@ -1316,32 +1327,35 @@
             }
         }
 
-        async function cargarPacientes(filtro = '') {
-            try {
-                const res = await fetch(`/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
-                const pacientes = await res.json();
-                
-                const tbody = document.getElementById('tablaPacientes');
-                tbody.innerHTML = pacientes.map(p => `
-                    <tr>
-                        <td><strong>${p.nombre}</strong></td>
-                        <td>${p.telefono || '-'}</td>
-                        <td>${p.ultima_visita || 'Sin visitas'}</td>
-                        <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
-                        <td>
-                            <button onclick="verHistorial(${p.id})" class="btn btn-primary" style="padding: 8px 15px; font-size: 14px;">
-                                Ver Historial
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                console.error(err);
-            }
-        }
+async function cargarPacientes(filtro = '') {
+    try {
+        const res = await fetch(`${API_URL}/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
+        const pacientes = await res.json();
+        
+        const tbody = document.getElementById('tablaPacientes');
+        tbody.innerHTML = pacientes.map(p => `
+            <tr>
+                <td><strong>${p.nombre}</strong></td>
+                <td>${p.telefono || '-'}</td>
+                <td>${p.ultima_visita || 'Sin visitas'}</td>
+                <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
+                <td>
+                    <button onclick="verHistorial(${p.id})" class="btn btn-primary" style="padding: 8px 15px; font-size: 14px;">
+                        Ver Historial
+                    </button>
+                    <button onclick="eliminarPaciente(${p.id})" class="btn btn-danger" style="padding: 8px 15px; font-size: 14px; margin-left: 8px;">
+                        🗑️ Eliminar
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
 
         function verHistorial(id) {
-            window.open(`/?paciente_id=${id}`, '_blank');
+            window.open(`https://ortodoncia.onrender.com/?paciente_id=${id}`, '_blank');
         }
 
         // ========== ARCHIVOS ==========
@@ -1353,7 +1367,7 @@
             }
 
             try {
-                const res = await fetch(`/api/buscar?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
                 
                 const lista = document.getElementById('listaPacientesArchivo');
@@ -1506,7 +1520,7 @@
                     formData.append('descripcion', item.descripcion);
                     formData.append('archivo', item.file);
                     
-                    const res = await fetch('/api/archivos', {
+                    const res = await fetch('${API_URL}/api/archivos', {
                         method: 'POST',
                         body: formData
                     });
@@ -1541,7 +1555,7 @@
 
         async function cargarArchivosPaciente(pacienteId) {
             try {
-                const res = await fetch(`/api/archivos/${pacienteId}`);
+                const res = await fetch(`${API_URL}/api/archivos/${pacienteId}`);
                 const archivos = await res.json();
                 
                 const container = document.getElementById('listaArchivosPaciente');
@@ -1585,7 +1599,7 @@
             if (!confirm('¿Está seguro de eliminar este archivo?')) return;
             
             try {
-                const res = await fetch(`/api/archivos/${archivoId}`, { method: 'DELETE' });
+                const res = await fetch(`${API_URL}/api/archivos/${archivoId}`, { method: 'DELETE' });
                 if (res.ok) {
                     showAlert('Archivo eliminado');
                     cargarArchivosPaciente(pacienteId);
@@ -1614,7 +1628,7 @@
                     formData.append('archivo', document.getElementById('file_input_trad').files[0]);
                     
                     try {
-                        const res = await fetch('/api/archivos', {
+                        const res = await fetch('${API_URL}/api/archivos', {
                             method: 'POST',
                             body: formData
                         });
@@ -1632,6 +1646,27 @@
                 });
             }
         });
+        // Función para Eliminar Paciente
+async function eliminarPaciente(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer.')) 
+        return;
+    
+    try {
+        const res = await fetch(`${API_URL}/api/pacientes/${id}`, { 
+            method: 'DELETE' 
+        });
+        
+        if (res.ok) {
+            showAlert('Paciente eliminado correctamente');
+            cargarPacientes();     // Recargar la lista
+            cargarEstadisticas();  // Actualizar estadísticas
+        } else {
+            showAlert('No se pudo eliminar el paciente', 'error');
+        }
+    } catch (err) {
+        showAlert('Error de conexión al eliminar', 'error');
+    }
+}
     </script>
 </body>
 </html>
