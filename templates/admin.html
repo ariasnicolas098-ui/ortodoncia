@@ -175,6 +175,15 @@
             background: #45a049;
         }
 
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
         .patient-list {
             max-height: 300px;
             overflow-y: auto;
@@ -321,7 +330,6 @@
         .badge-green { background: #e8f5e9; color: #388e3c; }
         .badge-red { background: #ffebee; color: #d32f2f; }
 
-        /* ===== SISTEMA DE CITAS - NUEVO ===== */
         .horario-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -377,7 +385,6 @@
             color: #2e7d32;
         }
 
-        /* ===== DRAG & DROP - NUEVO ===== */
         .files-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -391,6 +398,7 @@
             text-align: center;
             transition: all 0.3s;
             border: 2px solid transparent;
+            position: relative;
         }
 
         .file-card:hover {
@@ -416,19 +424,22 @@
             color: #666;
         }
 
-        .delete-file {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
+        .file-actions {
             margin-top: 10px;
-            font-size: 0.8em;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
         }
 
-        .delete-file:hover {
-            background: #d32f2f;
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .btn-xs {
+            padding: 5px 10px;
+            font-size: 12px;
         }
 
         .upload-methods {
@@ -600,13 +611,13 @@
             border-radius: 10px;
         }
 
-        .file-preview {
+        .file-image-preview {
             width: 100%;
             height: 100px;
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 10px;
-            background: #e0e0e0;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -615,28 +626,17 @@
         <h1>🦷 Panel de Administración</h1>
         <div class="nav-links">
             <a href="https://ortodoncia.onrender.com">🔍 Buscador</a>
-            <a href="/admin" class="active">⚙️ Administración</a>
+            <a href="https://ortodoncia.onrender.com/admin" class="active">⚙️ Administración</a>
         </div>
     </nav>
 
     <div class="container">
-        <!-- Estadísticas -->
         <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="totalPacientes">0</div>
-                <div class="stat-label">Pacientes Registrados</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalConsultas">0</div>
-                <div class="stat-label">Consultas Este Mes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="proximasCitas">0</div>
-                <div class="stat-label">Próximas Citas</div>
-            </div>
+            <div class="stat-card"><div class="stat-number" id="totalPacientes">0</div><div class="stat-label">Pacientes Registrados</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalConsultas">0</div><div class="stat-label">Consultas Este Mes</div></div>
+            <div class="stat-card"><div class="stat-number" id="proximasCitas">0</div><div class="stat-label">Próximas Citas</div></div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="showTab('nuevo-paciente')">➕ Nuevo Paciente</button>
             <button class="tab" onclick="showTab('nueva-consulta')">📋 Nueva Consulta</button>
@@ -644,10 +644,8 @@
             <button class="tab" onclick="showTab('archivos')">📎 Subir Archivos</button>
         </div>
 
-        <!-- Alertas -->
         <div id="alert" class="alert"></div>
 
-        <!-- Sección: Nuevo Paciente -->
         <div id="nuevo-paciente" class="section active">
             <div class="card">
                 <h2 style="margin-bottom: 25px; color: #333;">Registro de Nuevo Paciente</h2>
@@ -660,17 +658,14 @@
                                 <button type="button" class="voice-btn" onclick="dictar('nombre')" title="Dictar">🎤</button>
                             </div>
                         </div>
-                        
                         <div class="form-group">
                             <label>DNI / Documento</label>
                             <input type="text" id="dni" placeholder="Ej: 12345678">
                         </div>
-
                         <div class="form-group">
                             <label>Fecha de Nacimiento</label>
                             <input type="date" id="fecha_nacimiento">
                         </div>
-
                         <div class="form-group">
                             <label>Teléfono</label>
                             <div class="voice-input">
@@ -678,12 +673,10 @@
                                 <button type="button" class="voice-btn" onclick="dictar('telefono')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group">
                             <label>Email</label>
                             <input type="email" id="email" placeholder="Ej: paciente@email.com">
                         </div>
-
                         <div class="form-group full-width">
                             <label>Dirección</label>
                             <div class="voice-input">
@@ -691,7 +684,6 @@
                                 <button type="button" class="voice-btn" onclick="dictar('direccion')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group full-width">
                             <label>Alergias (separadas por coma)</label>
                             <div class="voice-input">
@@ -699,7 +691,6 @@
                                 <button type="button" class="voice-btn" onclick="dictar('alergias')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group full-width">
                             <label>Medicamentos Actuales</label>
                             <div class="voice-input">
@@ -707,7 +698,6 @@
                                 <button type="button" class="voice-btn" onclick="dictar('medicamentos')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group full-width">
                             <label>Condiciones Médicas Relevantes</label>
                             <div class="voice-input">
@@ -716,75 +706,48 @@
                             </div>
                         </div>
                     </div>
-
                     <div style="margin-top: 30px; text-align: center;">
-                        <button type="submit" class="btn btn-primary">
-                            💾 Guardar Paciente
-                        </button>
+                        <button type="submit" class="btn btn-primary">💾 Guardar Paciente</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- ============================================ -->
-        <!-- SECCIÓN: NUEVA CONSULTA - ACTUALIZADA CON CITAS -->
-        <!-- ============================================ -->
         <div id="nueva-consulta" class="section">
             <div class="card">
                 <h2 style="margin-bottom: 25px; color: #333;">Registrar Nueva Consulta y Cita</h2>
-                
-                <!-- Paso 1: Buscar Paciente -->
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>1. Seleccionar Paciente *</label>
                     <div class="voice-input">
-                        <input type="text" id="buscarPaciente" placeholder="Escriba o diga el nombre del paciente..." 
-                               oninput="filtrarPacientes(this.value)">
+                        <input type="text" id="buscarPaciente" placeholder="Escriba o diga el nombre del paciente..." oninput="filtrarPacientes(this.value)">
                         <button type="button" class="voice-btn" onclick="dictarBusqueda()" title="Buscar por voz">🎤</button>
                     </div>
                 </div>
-
                 <div class="patient-list" id="listaPacientes" style="margin-bottom: 25px;">
-                    <p style="color: #999; text-align: center; padding: 20px;">
-                        Escriba arriba para buscar pacientes...
-                    </p>
+                    <p style="color: #999; text-align: center; padding: 20px;">Escriba arriba para buscar pacientes...</p>
                 </div>
-
-                <!-- Formulario de Consulta -->
                 <form id="formConsulta" style="display: none;">
                     <input type="hidden" id="paciente_id">
-                    
                     <div class="alert" id="infoPaciente" style="display: flex; margin-bottom: 20px; background: #e3f2fd; color: #1976d2;">
                         Paciente seleccionado: <b id="nombrePacienteSeleccionado"></b>
                     </div>
-
-                    <!-- Paso 2: Fecha y Horario -->
                     <div class="form-grid">
                         <div class="form-group">
                             <label>2. Fecha de la Cita *</label>
-                            <input type="date" id="fecha_consulta" required 
-                                   min="" onchange="cargarHorariosDisponibles()">
+                            <input type="date" id="fecha_consulta" required min="" onchange="cargarHorariosDisponibles()">
                         </div>
-
                         <div class="form-group">
                             <label>3. Hora de la Cita *</label>
                             <input type="hidden" id="hora_consulta" required>
-                            <div id="horarioSeleccionado" class="horario-info" style="display: none;">
-                                Seleccione un horario de la lista
-                            </div>
+                            <div id="horarioSeleccionado" class="horario-info" style="display: none;">Seleccione un horario de la lista</div>
                         </div>
                     </div>
-
-                    <!-- Grid de Horarios Disponibles -->
                     <div class="form-group full-width" style="margin-top: 20px;">
                         <label>Horarios Disponibles (9:00 - 18:00)</label>
                         <div id="horariosContainer" class="horario-grid">
-                            <p style="color: #999; grid-column: 1/-1; text-align: center; padding: 20px;">
-                                Seleccione una fecha primero para ver horarios disponibles
-                            </p>
+                            <p style="color: #999; grid-column: 1/-1; text-align: center; padding: 20px;">Seleccione una fecha primero para ver horarios disponibles</p>
                         </div>
                     </div>
-
-                    <!-- Paso 4: Motivo y Procedimiento -->
                     <div class="form-grid" style="margin-top: 25px;">
                         <div class="form-group">
                             <label>4. Motivo de Consulta *</label>
@@ -793,7 +756,6 @@
                                 <button type="button" class="voice-btn" onclick="dictar('motivo')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group">
                             <label>5. Procedimiento a Realizar *</label>
                             <select id="procedimiento" required>
@@ -813,7 +775,6 @@
                                 <option value="Otro">Otro (especificar en observaciones)</option>
                             </select>
                         </div>
-
                         <div class="form-group">
                             <label>Dientes a Tratar</label>
                             <div class="voice-input">
@@ -821,7 +782,6 @@
                                 <button type="button" class="voice-btn" onclick="dictar('dientes')" title="Dictar">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group">
                             <label>Odontólogo Tratante</label>
                             <div class="voice-input">
@@ -830,118 +790,81 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Diagnóstico y Tratamiento -->
                     <div class="form-grid" style="margin-top: 20px;">
                         <div class="form-group full-width">
                             <label>Diagnóstico *</label>
                             <div class="voice-input">
                                 <textarea id="diagnostico" required placeholder="Describa el diagnóstico detallado..."></textarea>
-                                <button type="button" class="voice-btn" onclick="dictar('diagnostico')" title="Dictar" 
-                                        style="top: 40px; transform: none;">🎤</button>
+                                <button type="button" class="voice-btn" onclick="dictar('diagnostico')" title="Dictar" style="top: 40px; transform: none;">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group full-width">
                             <label>Tratamiento a Realizar *</label>
                             <div class="voice-input">
                                 <textarea id="tratamiento" required placeholder="Detalle el tratamiento a aplicar..."></textarea>
-                                <button type="button" class="voice-btn" onclick="dictar('tratamiento')" title="Dictar"
-                                        style="top: 40px; transform: none;">🎤</button>
+                                <button type="button" class="voice-btn" onclick="dictar('tratamiento')" title="Dictar" style="top: 40px; transform: none;">🎤</button>
                             </div>
                         </div>
-
                         <div class="form-group full-width">
                             <label>Observaciones Adicionales</label>
                             <div class="voice-input">
                                 <textarea id="observaciones" placeholder="Recomendaciones, medicamentos a recetar, etc."></textarea>
-                                <button type="button" class="voice-btn" onclick="dictar('observaciones')" title="Dictar"
-                                        style="top: 40px; transform: none;">🎤</button>
+                                <button type="button" class="voice-btn" onclick="dictar('observaciones')" title="Dictar" style="top: 40px; transform: none;">🎤</button>
                             </div>
                         </div>
                     </div>
-
                     <div style="margin-top: 30px; text-align: center;">
-                        <button type="submit" class="btn btn-success">
-                            💾 Guardar Consulta y Cita
-                        </button>
+                        <button type="submit" class="btn btn-success">💾 Guardar Consulta y Cita</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Sección: Lista de Pacientes -->
         <div id="pacientes" class="section">
             <div class="card">
                 <h2 style="margin-bottom: 25px; color: #333;">Lista de Pacientes</h2>
-                
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <input type="text" id="buscarLista" placeholder="Buscar paciente..." 
-                           oninput="cargarPacientes(this.value)" style="max-width: 400px;">
+                    <input type="text" id="buscarLista" placeholder="Buscar paciente por nombre..." oninput="cargarPacientes(this.value)" style="max-width: 400px; padding: 12px;">
                 </div>
-
                 <div class="recent-patients">
-<div id="pacientes" class="section">
-    <div class="card">
-        <h2 style="margin-bottom: 25px; color: #333;">Lista de Pacientes</h2>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-            <input type="text" id="buscarLista" placeholder="Buscar paciente..." 
-                   oninput="cargarPacientes(this.value)" style="max-width: 400px; padding: 12px;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Teléfono</th>
+                                <th>Última Visita</th>
+                                <th>Próxima Cita</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaPacientes"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <div class="recent-patients">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Última Visita</th>
-                        <th>Próxima Cita</th>
-                        <th>Acciones</th>   <!-- ← Nueva columna -->
-                    </tr>
-                </thead>
-                <tbody id="tablaPacientes">
-                    <!-- Se llena con JavaScript -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-        <!-- Sección: Subir Archivos con Drag & Drop -->
         <div id="archivos" class="section">
             <div class="card">
                 <h2 style="margin-bottom: 25px; color: #333;">📎 Gestión de Archivos y Radiografías</h2>
-                
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>Buscar Paciente *</label>
                     <div class="voice-input">
-                        <input type="text" id="buscarPacienteArchivo" placeholder="Escriba el nombre del paciente..." 
-                               oninput="filtrarPacientesArchivo(this.value)">
+                        <input type="text" id="buscarPacienteArchivo" placeholder="Escriba el nombre del paciente..." oninput="filtrarPacientesArchivo(this.value)">
                         <button type="button" class="voice-btn" onclick="dictar('buscarPacienteArchivo')" title="Dictar">🎤</button>
                     </div>
                 </div>
-
                 <div class="patient-list" id="listaPacientesArchivo" style="margin-bottom: 25px; max-height: 150px;">
-                    <p style="color: #999; text-align: center; padding: 20px;">
-                        Escriba arriba para buscar pacientes...
-                    </p>
+                    <p style="color: #999; text-align: center; padding: 20px;">Escriba arriba para buscar pacientes...</p>
                 </div>
-
                 <div id="formArchivo" style="display: none;">
                     <div class="alert" style="display: flex; margin-bottom: 20px; background: #e3f2fd; color: #1976d2;">
                         Paciente: <b id="nombrePacienteArchivo"></b>
                     </div>
-
-                    <!-- ZONA DE DRAG & DROP -->
                     <div class="upload-methods">
-                        <!-- Método 1: Botón tradicional -->
                         <div class="upload-section">
                             <h3 style="margin-bottom: 15px; color: #555;">📁 Método 1: Seleccionar archivo</h3>
                             <form id="uploadFormTradicional" enctype="multipart/form-data">
                                 <input type="hidden" id="paciente_id_archivo_trad">
-                                
                                 <div class="form-grid" style="margin-bottom: 15px;">
                                     <div class="form-group">
                                         <label>Tipo de Archivo *</label>
@@ -954,35 +877,27 @@
                                             <option value="otro">📎 Otro</option>
                                         </select>
                                     </div>
-
                                     <div class="form-group">
                                         <label>Descripción</label>
                                         <input type="text" id="descripcion_archivo_trad" placeholder="Ej: Radiografía panorámica inicial">
                                     </div>
                                 </div>
-
                                 <div class="form-group">
-                                    <label>Seleccionar Archivo</label>
-                                    <input type="file" id="file_input_trad" accept="image/*,.pdf,.doc,.docx" required 
-                                           style="padding: 10px; border: 2px dashed #667eea; border-radius: 10px; width: 100%;">
+                                    <label>Seleccionar Archivo (cualquier formato)</label>
+                                    <input type="file" id="file_input_trad" required style="padding: 10px; border: 2px dashed #667eea; border-radius: 10px; width: 100%;">
+                                    <small style="color: #666; margin-top: 5px; display: block;">Formatos permitidos: imágenes, PDF, Word, Excel, etc. (Máx. 10MB)</small>
                                 </div>
-
-                                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">
-                                    📤 Subir Archivo
-                                </button>
+                                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">📤 Subir Archivo</button>
                             </form>
                         </div>
-
-                        <!-- Método 2: Drag & Drop -->
                         <div class="upload-section">
                             <h3 style="margin-bottom: 15px; color: #555;">🖱️ Método 2: Arrastrar y soltar</h3>
-                            
                             <div id="dropZone" class="drop-zone">
                                 <div class="drop-zone-content">
                                     <div class="drop-icon">📂</div>
                                     <p class="drop-text"><strong>Arrastra archivos aquí</strong></p>
-                                    <p class="drop-hint">O haz clic para seleccionar múltiples archivos</p>
-                                    <input type="file" id="file_input_drop" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;">
+                                    <p class="drop-hint">O haz clic para seleccionar múltiples archivos<br><small>Cualquier formato permitido</small></p>
+                                    <input type="file" id="file_input_drop" multiple style="display: none;">
                                 </div>
                                 <div class="drop-zone-overlay" id="dropOverlay">
                                     <div class="drop-overlay-content">
@@ -991,8 +906,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Configuración para drag & drop -->
                             <div class="drop-config" style="margin-top: 15px;">
                                 <div class="form-grid">
                                     <div class="form-group">
@@ -1012,27 +925,19 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Lista de archivos en cola -->
                             <div id="uploadQueue" class="upload-queue" style="display: none;">
                                 <h4 style="margin: 15px 0 10px; color: #333;">📋 Archivos en cola:</h4>
                                 <div id="queueList"></div>
-                                <button type="button" class="btn btn-success" onclick="procesarCola()" style="margin-top: 15px; width: 100%;">
-                                    🚀 Subir todos los archivos
-                                </button>
+                                <button type="button" class="btn btn-success" onclick="procesarCola()" style="margin-top: 15px; width: 100%;">🚀 Subir todos los archivos</button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Progreso de subida -->
                     <div id="uploadProgress" class="upload-progress" style="display: none;">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill"></div>
                         </div>
                         <p id="progressText" style="text-align: center; margin-top: 10px; color: #666;">Subiendo...</p>
                     </div>
-
-                    <!-- Lista de archivos del paciente -->
                     <div style="margin-top: 40px;">
                         <h3 style="margin-bottom: 20px; color: #333;">📂 Archivos del Paciente</h3>
                         <div id="listaArchivosPaciente" class="files-grid">
@@ -1046,80 +951,52 @@
 
     <script>
         const API_URL = "https://ortodoncia.onrender.com";
-        // Variables globales
-        let recognition;
         let pacientesCache = [];
         let pacienteSeleccionado = null;
         let citaSeleccionada = null;
         let colaSubida = [];
         let pacienteArchivoActual = null;
 
-        // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
-            
-            // Establecer fecha mínima como hoy
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('fecha_consulta').min = hoy;
-            
-            // Formularios
             document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
             document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
+            cargarPacientes();
         });
 
-        // Navegación de tabs
         function showTab(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            
             event.target.classList.add('active');
             document.getElementById(tabId).classList.add('active');
-            
             if (tabId === 'pacientes') cargarPacientes();
         }
 
-        // Mostrar alerta
         function showAlert(message, type = 'success') {
             const alert = document.getElementById('alert');
             alert.className = `alert ${type}`;
             alert.innerHTML = type === 'success' ? `✅ ${message}` : `❌ ${message}`;
-            
-            setTimeout(() => {
-                alert.className = 'alert';
-            }, 5000);
+            setTimeout(() => { alert.className = 'alert'; }, 5000);
         }
 
-        // ========== RECONOCIMIENTO DE VOZ ==========
         function dictar(campoId) {
             if (!('webkitSpeechRecognition' in window)) {
                 showAlert('Su navegador no soporta reconocimiento de voz', 'error');
                 return;
             }
-
             const input = document.getElementById(campoId);
             const btn = event.target;
-            
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition();
             rec.lang = 'es-ES';
             rec.continuous = false;
-            
             btn.classList.add('listening');
             rec.start();
-            
-            rec.onresult = (e) => {
-                const texto = e.results[0][0].transcript;
-                input.value = texto;
-            };
-            
-            rec.onend = () => {
-                btn.classList.remove('listening');
-            };
-            
-            rec.onerror = () => {
-                btn.classList.remove('listening');
-                showAlert('Error al escuchar', 'error');
-            };
+            rec.onresult = (e) => { input.value = e.results[0][0].transcript; };
+            rec.onend = () => { btn.classList.remove('listening'); };
+            rec.onerror = () => { btn.classList.remove('listening'); showAlert('Error al escuchar', 'error'); };
         }
 
         function dictarBusqueda() {
@@ -1127,10 +1004,8 @@
             setTimeout(() => filtrarPacientes(document.getElementById('buscarPaciente').value), 1000);
         }
 
-        // ========== PACIENTES ==========
         async function guardarPaciente(e) {
             e.preventDefault();
-            
             const data = {
                 nombre_completo: document.getElementById('nombre').value,
                 dni: document.getElementById('dni').value,
@@ -1142,53 +1017,40 @@
                 medicamentos_actuales: document.getElementById('medicamentos').value || 'Ninguno',
                 condiciones_medicas: document.getElementById('condiciones').value || 'Ninguna'
             };
-
             try {
-                const res = await fetch('${API_URL}/api/pacientes', {
+                const res = await fetch(`${API_URL}/api/pacientes`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                
                 if (res.ok) {
                     showAlert('Paciente registrado correctamente');
                     document.getElementById('formPaciente').reset();
                     cargarEstadisticas();
-                } else {
-                    throw new Error('Error al guardar');
-                }
-            } catch (err) {
-                showAlert('Error al guardar paciente: ' + err.message, 'error');
-            }
+                } else { throw new Error('Error al guardar'); }
+            } catch (err) { showAlert('Error al guardar paciente: ' + err.message, 'error'); }
         }
 
         async function filtrarPacientes(query) {
             if (query.length < 2) {
-                document.getElementById('listaPacientes').innerHTML = 
-                    '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
+                document.getElementById('listaPacientes').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
                 return;
             }
-
             try {
                 const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
-                
                 const lista = document.getElementById('listaPacientes');
-                
                 if (pacientes.length === 0) {
                     lista.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No se encontraron pacientes</p>';
                     return;
                 }
-
                 lista.innerHTML = pacientes.map(p => `
                     <div class="patient-item" onclick="seleccionarPaciente(${p.id}, '${p.nombre_completo}')">
                         <strong>${p.nombre_completo}</strong><br>
                         <small>${p.dni || 'Sin DNI'} | ${p.telefono || 'Sin teléfono'}</small>
                     </div>
                 `).join('');
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function seleccionarPaciente(id, nombre) {
@@ -1197,61 +1059,39 @@
             document.getElementById('nombrePacienteSeleccionado').textContent = nombre;
             document.getElementById('formConsulta').style.display = 'block';
             document.getElementById('infoPaciente').style.display = 'flex';
-            
             document.querySelectorAll('#listaPacientes .patient-item').forEach(el => el.classList.remove('selected'));
             event.target.closest('.patient-item').classList.add('selected');
         }
 
-        // ========== SISTEMA DE CITAS ==========
         async function cargarHorariosDisponibles() {
             const fecha = document.getElementById('fecha_consulta')?.value;
             if (!fecha) return;
-            
             try {
                 const res = await fetch(`${API_URL}/api/citas/disponibles?fecha=${fecha}`);
                 const horarios = await res.json();
-                
                 const container = document.getElementById('horariosContainer');
-                
                 container.innerHTML = horarios.map(h => `
-                    <button type="button" 
-                            class="horario-btn ${h.disponible ? '' : 'ocupado'} ${citaSeleccionada === h.hora ? 'seleccionado' : ''}"
-                            onclick="${h.disponible ? `seleccionarHorario('${h.hora}')` : ''}"
-                            ${!h.disponible ? 'disabled title="Horario ocupado"' : ''}>
-                        ${h.hora}
-                        ${!h.disponible ? '<br><small>Ocupado</small>' : ''}
+                    <button type="button" class="horario-btn ${h.disponible ? '' : 'ocupado'} ${citaSeleccionada === h.hora ? 'seleccionado' : ''}"
+                            onclick="${h.disponible ? `seleccionarHorario('${h.hora}')` : ''}" ${!h.disponible ? 'disabled title="Horario ocupado"' : ''}>
+                        ${h.hora}${!h.disponible ? '<br><small>Ocupado</small>' : ''}
                     </button>
                 `).join('');
-                
-            } catch (err) {
-                console.error('Error cargando horarios:', err);
-            }
+            } catch (err) { console.error('Error cargando horarios:', err); }
         }
 
         function seleccionarHorario(hora) {
             citaSeleccionada = hora;
             document.getElementById('hora_consulta').value = hora;
             cargarHorariosDisponibles();
-            
             const info = document.getElementById('horarioSeleccionado');
             info.style.display = 'flex';
             info.innerHTML = `✅ Horario seleccionado: <b>${hora}</b>`;
         }
 
-        // ========== CONSULTAS ==========
         async function guardarConsulta(e) {
             e.preventDefault();
-            
-            if (!pacienteSeleccionado) {
-                showAlert('Seleccione un paciente primero', 'error');
-                return;
-            }
-
-            if (!citaSeleccionada) {
-                showAlert('Seleccione un horario disponible', 'error');
-                return;
-            }
-
+            if (!pacienteSeleccionado) { showAlert('Seleccione un paciente primero', 'error'); return; }
+            if (!citaSeleccionada) { showAlert('Seleccione un horario disponible', 'error'); return; }
             const data = {
                 paciente_id: pacienteSeleccionado,
                 fecha_consulta: document.getElementById('fecha_consulta').value,
@@ -1264,128 +1104,103 @@
                 observaciones: document.getElementById('observaciones').value,
                 odontologo: document.getElementById('odontologo').value
             };
-
             try {
-                // Primero crear la cita
-                const resCita = await fetch('${API_URL}/api/citas', {
+                const resCita = await fetch(`${API_URL}/api/citas`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        paciente_id: data.paciente_id,
-                        fecha: data.fecha_consulta,
-                        hora: data.hora_consulta,
-                        motivo: data.motivo_consulta
-                    })
+                    body: JSON.stringify({ paciente_id: data.paciente_id, fecha: data.fecha_consulta, hora: data.hora_consulta, motivo: data.motivo_consulta })
                 });
-                
-                if (!resCita.ok) {
-                    const error = await resCita.json();
-                    throw new Error(error.error || 'Error al crear cita');
-                }
-
-                // Luego guardar la consulta
-                const resConsulta = await fetch('${API_URL}/api/consultas', {
+                if (!resCita.ok) { const error = await resCita.json(); throw new Error(error.error || 'Error al crear cita'); }
+                const resConsulta = await fetch(`${API_URL}/api/consultas`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                
                 if (resConsulta.ok) {
                     showAlert('Consulta y cita registradas correctamente');
                     document.getElementById('formConsulta').reset();
                     document.getElementById('formConsulta').style.display = 'none';
                     document.getElementById('infoPaciente').style.display = 'none';
                     document.getElementById('listaPacientes').innerHTML = '';
-                    document.getElementById('horariosContainer').innerHTML = `
-                        <p style="color: #999; grid-column: 1/-1; text-align: center; padding: 20px;">
-                            Seleccione una fecha primero para ver horarios disponibles
-                        </p>
-                    `;
+                    document.getElementById('horariosContainer').innerHTML = '<p style="color: #999; grid-column: 1/-1; text-align: center; padding: 20px;">Seleccione una fecha primero para ver horarios disponibles</p>';
                     document.getElementById('horarioSeleccionado').style.display = 'none';
-                    citaSeleccionada = null;
-                    pacienteSeleccionado = null;
+                    citaSeleccionada = null; pacienteSeleccionado = null;
                     cargarEstadisticas();
-                } else {
-                    throw new Error('Error al guardar consulta');
-                }
-            } catch (err) {
-                showAlert('Error: ' + err.message, 'error');
-            }
+                } else { throw new Error('Error al guardar consulta'); }
+            } catch (err) { showAlert('Error: ' + err.message, 'error'); }
         }
 
-        // ========== LISTADO Y ESTADÍSTICAS ==========
         async function cargarEstadisticas() {
             try {
-                const res = await fetch('${API_URL}/api/estadisticas');
+                const res = await fetch(`${API_URL}/api/estadisticas`);
                 const data = await res.json();
-                
                 document.getElementById('totalPacientes').textContent = data.total_pacientes;
                 document.getElementById('totalConsultas').textContent = data.consultas_mes;
                 document.getElementById('proximasCitas').textContent = data.proximas_citas;
+            } catch (err) { console.error(err); }
+        }
+
+        async function cargarPacientes(filtro = '') {
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
+                const pacientes = await res.json();
+                const tbody = document.getElementById('tablaPacientes');
+                if (pacientes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999; padding: 30px;">No hay pacientes registrados</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = pacientes.map(p => `
+                    <tr>
+                        <td><strong>${p.nombre}</strong></td>
+                        <td>${p.telefono || '-'}</td>
+                        <td>${p.ultima_visita || 'Sin visitas'}</td>
+                        <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
+                        <td>
+                            <button onclick="verHistorial(${p.id})" class="btn btn-primary btn-small">📋 Historial</button>
+                            <button onclick="eliminarPaciente(${p.id})" class="btn btn-danger btn-small">🗑️ Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
             } catch (err) {
-                console.error(err);
+                console.error('Error cargando pacientes:', err);
+                document.getElementById('tablaPacientes').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #f44336; padding: 30px;">Error al cargar pacientes</td></tr>';
             }
         }
 
-async function cargarPacientes(filtro = '') {
-    try {
-        const res = await fetch(`${API_URL}/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
-        const pacientes = await res.json();
-        
-        const tbody = document.getElementById('tablaPacientes');
-        tbody.innerHTML = pacientes.map(p => `
-            <tr>
-                <td><strong>${p.nombre}</strong></td>
-                <td>${p.telefono || '-'}</td>
-                <td>${p.ultima_visita || 'Sin visitas'}</td>
-                <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
-                <td>
-                    <button onclick="verHistorial(${p.id})" class="btn btn-primary" style="padding: 8px 15px; font-size: 14px;">
-                        Ver Historial
-                    </button>
-                    <button onclick="eliminarPaciente(${p.id})" class="btn btn-danger" style="padding: 8px 15px; font-size: 14px; margin-left: 8px;">
-                        🗑️ Eliminar
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        console.error(err);
-    }
-}
+        function verHistorial(id) { window.open(`https://ortodoncia.onrender.com/?paciente_id=${id}`, '_blank'); }
 
-        function verHistorial(id) {
-            window.open(`https://ortodoncia.onrender.com/?paciente_id=${id}`, '_blank');
+        async function eliminarPaciente(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer y eliminará también todos sus archivos asociados.')) return;
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showAlert('Paciente eliminado correctamente');
+                    cargarPacientes(document.getElementById('buscarLista').value);
+                    cargarEstadisticas();
+                } else { const error = await res.json(); showAlert(error.error || 'No se pudo eliminar el paciente', 'error'); }
+            } catch (err) { showAlert('Error de conexión al eliminar', 'error'); }
         }
 
-        // ========== ARCHIVOS ==========
         async function filtrarPacientesArchivo(query) {
             if (query.length < 2) {
-                document.getElementById('listaPacientesArchivo').innerHTML = 
-                    '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
+                document.getElementById('listaPacientesArchivo').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
                 return;
             }
-
             try {
                 const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
-                
                 const lista = document.getElementById('listaPacientesArchivo');
-                
                 if (pacientes.length === 0) {
                     lista.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No se encontraron pacientes</p>';
                     return;
                 }
-
                 lista.innerHTML = pacientes.map(p => `
                     <div class="patient-item" onclick="seleccionarPacienteArchivo(${p.id}, '${p.nombre_completo}')">
                         <strong>${p.nombre_completo}</strong><br>
                         <small>${p.dni || 'Sin DNI'}</small>
                     </div>
                 `).join('');
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function seleccionarPacienteArchivo(id, nombre) {
@@ -1393,12 +1208,8 @@ async function cargarPacientes(filtro = '') {
             document.getElementById('paciente_id_archivo_trad').value = id;
             document.getElementById('nombrePacienteArchivo').textContent = nombre;
             document.getElementById('formArchivo').style.display = 'block';
-            
-            document.querySelectorAll('#listaPacientesArchivo .patient-item').forEach(el => {
-                el.classList.remove('selected');
-            });
+            document.querySelectorAll('#listaPacientesArchivo .patient-item').forEach(el => el.classList.remove('selected'));
             event.target.closest('.patient-item').classList.add('selected');
-            
             cargarArchivosPaciente(id);
             initDragAndDrop();
         }
@@ -1406,147 +1217,83 @@ async function cargarPacientes(filtro = '') {
         function initDragAndDrop() {
             const dropZone = document.getElementById('dropZone');
             const fileInput = document.getElementById('file_input_drop');
-            
             if (!dropZone || !fileInput) return;
-            
             dropZone.addEventListener('click', () => fileInput.click());
-            
-            fileInput.addEventListener('change', (e) => {
-                agregarACola(e.target.files);
-            });
-            
+            fileInput.addEventListener('change', (e) => { agregarACola(e.target.files); });
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropZone.addEventListener(eventName, preventDefaults, false);
                 document.body.addEventListener(eventName, preventDefaults, false);
             });
-            
             ['dragenter', 'dragover'].forEach(eventName => {
                 dropZone.addEventListener(eventName, () => {
                     document.getElementById('dropOverlay').classList.add('active');
                     dropZone.classList.add('drag-over');
                 }, false);
             });
-            
             ['dragleave', 'drop'].forEach(eventName => {
                 dropZone.addEventListener(eventName, () => {
                     document.getElementById('dropOverlay').classList.remove('active');
                     dropZone.classList.remove('drag-over');
                 }, false);
             });
-            
-            dropZone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                agregarACola(files);
-            });
+            dropZone.addEventListener('drop', (e) => { agregarACola(e.dataTransfer.files); });
         }
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
         function agregarACola(files) {
             const tipoBase = document.getElementById('tipo_archivo_drop').value;
             const descBase = document.getElementById('descripcion_archivo_drop').value;
-            
-            if (!tipoBase) {
-                showAlert('Seleccione un tipo de archivo primero', 'error');
-                return;
-            }
-            
-            if (!pacienteArchivoActual) {
-                showAlert('Seleccione un paciente primero', 'error');
-                return;
-            }
-            
+            if (!tipoBase) { showAlert('Seleccione un tipo de archivo primero', 'error'); return; }
+            if (!pacienteArchivoActual) { showAlert('Seleccione un paciente primero', 'error'); return; }
             Array.from(files).forEach(file => {
-                if (file.size > 10 * 1024 * 1024) {
-                    showAlert(`Archivo ${file.name} excede 10MB`, 'error');
-                    return;
-                }
-                
-                colaSubida.push({
-                    file: file,
-                    tipo: tipoBase,
-                    descripcion: descBase ? `${descBase} - ${file.name}` : file.name,
-                    status: 'pending',
-                    id: Date.now() + Math.random()
-                });
+                if (file.size > 10 * 1024 * 1024) { showAlert(`Archivo ${file.name} excede 10MB`, 'error'); return; }
+                colaSubida.push({ file: file, tipo: tipoBase, descripcion: descBase ? `${descBase} - ${file.name}` : file.name, status: 'pending', id: Date.now() + Math.random() });
             });
-            
             mostrarCola();
             document.getElementById('uploadQueue').style.display = 'block';
         }
 
         function mostrarCola() {
-            const container = document.getElementById('queueList');
-            container.innerHTML = colaSubida.map((item) => `
+            document.getElementById('queueList').innerHTML = colaSubida.map((item) => `
                 <div class="queue-item ${item.status}" id="queue-${item.id}">
                     <div class="queue-info">
                         <div class="queue-name">${item.file.name}</div>
                         <div class="queue-size">${(item.file.size / 1024 / 1024).toFixed(2)} MB</div>
                     </div>
-                    <div class="queue-status">
-                        ${item.status === 'pending' ? '⏳' : 
-                          item.status === 'success' ? '✅' : 
-                          item.status === 'error' ? '❌' : '⏳'}
-                    </div>
+                    <div class="queue-status">${item.status === 'pending' ? '⏳' : item.status === 'success' ? '✅' : '❌'}</div>
                 </div>
             `).join('');
         }
 
         async function procesarCola() {
             if (colaSubida.length === 0) return;
-            
             const progressDiv = document.getElementById('uploadProgress');
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
-            
             progressDiv.style.display = 'block';
-            
             for (let i = 0; i < colaSubida.length; i++) {
                 const item = colaSubida[i];
                 if (item.status !== 'pending') continue;
-                
-                const porcentaje = ((i / colaSubida.length) * 100).toFixed(0);
-                progressFill.style.width = `${porcentaje}%`;
+                progressFill.style.width = `${((i / colaSubida.length) * 100).toFixed(0)}%`;
                 progressText.textContent = `Subiendo ${i + 1} de ${colaSubida.length}: ${item.file.name}...`;
-                
                 try {
                     const formData = new FormData();
                     formData.append('paciente_id', pacienteArchivoActual);
                     formData.append('tipo', item.tipo);
                     formData.append('descripcion', item.descripcion);
                     formData.append('archivo', item.file);
-                    
-                    const res = await fetch('${API_URL}/api/archivos', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (res.ok) {
-                        item.status = 'success';
-                    } else {
-                        item.status = 'error';
-                    }
-                } catch (err) {
-                    item.status = 'error';
-                    console.error(err);
-                }
-                
+                    const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                    item.status = res.ok ? 'success' : 'error';
+                } catch (err) { item.status = 'error'; console.error(err); }
                 mostrarCola();
             }
-            
             progressFill.style.width = '100%';
             progressText.textContent = '¡Subida completada!';
-            
             setTimeout(() => {
                 progressDiv.style.display = 'none';
                 colaSubida = colaSubida.filter(i => i.status !== 'success');
-                if (colaSubida.length === 0) {
-                    document.getElementById('uploadQueue').style.display = 'none';
-                }
+                if (colaSubida.length === 0) document.getElementById('uploadQueue').style.display = 'none';
                 mostrarCola();
                 cargarArchivosPaciente(pacienteArchivoActual);
                 showAlert('Archivos subidos correctamente');
@@ -1557,116 +1304,63 @@ async function cargarPacientes(filtro = '') {
             try {
                 const res = await fetch(`${API_URL}/api/archivos/${pacienteId}`);
                 const archivos = await res.json();
-                
                 const container = document.getElementById('listaArchivosPaciente');
-                
-                if (archivos.length === 0) {
-                    container.innerHTML = '<p style="color: #999;">Este paciente no tiene archivos registrados</p>';
-                    return;
-                }
-
-                container.innerHTML = archivos.map(a => `
-                    <div class="file-card">
-                        <div class="file-icon-big">${getFileIcon(a.tipo)}</div>
-                        <div class="file-name">${a.descripcion || a.nombre}</div>
-                        <div class="file-meta">${formatearFecha(a.fecha_subida)}</div>
-                        <button class="delete-file" onclick="eliminarArchivo(${a.id}, ${pacienteId})">🗑️ Eliminar</button>
-                    </div>
-                `).join('');
-            } catch (err) {
-                console.error(err);
-            }
+                if (archivos.length === 0) { container.innerHTML = '<p style="color: #999;">Este paciente no tiene archivos registrados</p>'; return; }
+                container.innerHTML = archivos.map(a => {
+                    const esImagen = a.tipo === 'radiografia' || a.tipo === 'foto';
+                    const preview = esImagen ? `<img src="${a.url}" class="file-image-preview" onclick="verArchivo('${a.url}')" alt="${a.descripcion}">` : `<div class="file-icon-big">${getFileIcon(a.tipo)}</div>`;
+                    return `
+                        <div class="file-card">
+                            ${preview}
+                            <div class="file-name">${a.descripcion || a.nombre}</div>
+                            <div class="file-meta">${formatearFecha(a.fecha_subida)} • ${(a.size / 1024).toFixed(1)} KB</div>
+                            <div class="file-actions">
+                                <button class="btn btn-primary btn-xs" onclick="verArchivo('${a.url}')">👁️ Ver</button>
+                                <button class="btn btn-danger btn-xs" onclick="eliminarArchivo(${a.id}, ${pacienteId})">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) { console.error(err); }
         }
 
+        function verArchivo(url) { window.open(url, '_blank'); }
+
         function getFileIcon(tipo) {
-            const icons = {
-                'radiografia': '🩻',
-                'foto': '📷',
-                'documento': '📄',
-                'pdf': '📑',
-                'otro': '📎'
-            };
+            const icons = { 'radiografia': '🩻', 'foto': '📷', 'documento': '📄', 'pdf': '📑', 'otro': '📎' };
             return icons[tipo] || '📎';
         }
 
-        function formatearFecha(fechaStr) {
-            if (!fechaStr) return '';
-            const fecha = new Date(fechaStr);
-            return fecha.toLocaleDateString('es-ES');
-        }
+        function formatearFecha(fechaStr) { if (!fechaStr) return ''; return new Date(fechaStr).toLocaleDateString('es-ES'); }
 
         async function eliminarArchivo(archivoId, pacienteId) {
             if (!confirm('¿Está seguro de eliminar este archivo?')) return;
-            
             try {
                 const res = await fetch(`${API_URL}/api/archivos/${archivoId}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showAlert('Archivo eliminado');
-                    cargarArchivosPaciente(pacienteId);
-                }
-            } catch (err) {
-                showAlert('Error al eliminar', 'error');
-            }
+                if (res.ok) { showAlert('Archivo eliminado'); cargarArchivosPaciente(pacienteId); }
+                else { showAlert('Error al eliminar archivo', 'error'); }
+            } catch (err) { showAlert('Error al eliminar', 'error'); }
         }
 
-        // Formulario tradicional de archivos
         document.addEventListener('DOMContentLoaded', function() {
             const formTrad = document.getElementById('uploadFormTradicional');
             if (formTrad) {
                 formTrad.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    
-                    if (!pacienteArchivoActual) {
-                        showAlert('Seleccione un paciente primero', 'error');
-                        return;
-                    }
-                    
+                    if (!pacienteArchivoActual) { showAlert('Seleccione un paciente primero', 'error'); return; }
                     const formData = new FormData();
                     formData.append('paciente_id', pacienteArchivoActual);
                     formData.append('tipo', document.getElementById('tipo_archivo_trad').value);
                     formData.append('descripcion', document.getElementById('descripcion_archivo_trad').value);
                     formData.append('archivo', document.getElementById('file_input_trad').files[0]);
-                    
                     try {
-                        const res = await fetch('${API_URL}/api/archivos', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        if (res.ok) {
-                            showAlert('Archivo subido correctamente');
-                            formTrad.reset();
-                            cargarArchivosPaciente(pacienteArchivoActual);
-                        } else {
-                            throw new Error('Error al subir');
-                        }
-                    } catch (err) {
-                        showAlert('Error al subir archivo: ' + err.message, 'error');
-                    }
+                        const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                        if (res.ok) { showAlert('Archivo subido correctamente'); formTrad.reset(); cargarArchivosPaciente(pacienteArchivoActual); }
+                        else { const error = await res.json(); throw new Error(error.error || 'Error al subir'); }
+                    } catch (err) { showAlert('Error al subir archivo: ' + err.message, 'error'); }
                 });
             }
         });
-        // Función para Eliminar Paciente
-async function eliminarPaciente(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer.')) 
-        return;
-    
-    try {
-        const res = await fetch(`${API_URL}/api/pacientes/${id}`, { 
-            method: 'DELETE' 
-        });
-        
-        if (res.ok) {
-            showAlert('Paciente eliminado correctamente');
-            cargarPacientes();     // Recargar la lista
-            cargarEstadisticas();  // Actualizar estadísticas
-        } else {
-            showAlert('No se pudo eliminar el paciente', 'error');
-        }
-    } catch (err) {
-        showAlert('Error de conexión al eliminar', 'error');
-    }
-}
     </script>
 </body>
 </html>
