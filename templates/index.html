@@ -3,283 +3,636 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - Consultorio Dental</title>
+    <title>Consultorio Dental - Búsqueda Inteligente</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-        }
-
-        .navbar {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            min-height: 100vh;
             padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
             background: white;
-            padding: 10px;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
 
-        .tab {
-            padding: 15px 30px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            border-radius: 10px;
-            font-size: 16px;
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .admin-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
             transition: all 0.3s;
-            color: #666;
+            border: 2px solid rgba(255,255,255,0.3);
         }
 
-        .tab.active {
+        .admin-btn:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+
+        .search-section {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            max-width: 700px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+            min-width: 250px;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 18px 25px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .mic-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: #f44336;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .mic-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6);
+        }
+
+        .mic-btn.listening {
+            background: #4CAF50;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
+            50% { transform: scale(1.1); box-shadow: 0 6px 25px rgba(76, 175, 80, 0.6); }
+        }
+
+        .search-btn {
+            padding: 18px 35px;
             background: #667eea;
             color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .section {
+        .search-btn:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        /* Lista de resultados de búsqueda */
+        .search-results-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
             display: none;
-            animation: fadeIn 0.4s;
         }
 
-        .section.active {
+        .search-results-list.active {
             display: block;
         }
 
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+        .search-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .btn {
-            padding: 15px 40px;
-            border: none;
-            border-radius: 10px;
+        .search-result-item:hover {
+            background: #f5f7fa;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-name {
+            font-weight: 600;
+            color: #333;
             font-size: 16px;
-            font-weight: bold;
+        }
+
+        .result-details {
+            font-size: 13px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .btn-ver {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .btn-ver:hover {
+            background: #5a6fd6;
+            transform: scale(1.05);
         }
 
-        .alert {
-            padding: 15px 20px;
-            border-radius: 10px;
+        .results-section {
+            padding: 40px;
+            min-height: 400px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+            font-size: 1.1em;
+        }
+
+        /* Tarjeta de paciente detallada */
+        .patient-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border-left: 5px solid #667eea;
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .alert.success { background: #d4edda; color: #155724; }
-        .alert.error { background: #f8d7da; color: #721c24; }
+        .patient-title h2 {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
 
-        .stats {
+        .patient-id {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .patient-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.05);
-            text-align: center;
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
         }
 
-        .stat-number {
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Sección de archivos */
+        .archivos-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .archivos-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .file-icon {
             font-size: 2.5em;
-            font-weight: bold;
-            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: #333;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .no-files {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .search-box { flex-direction: column; }
+            .mic-btn, .search-btn { width: 100%; }
+            .admin-btn { position: static; display: inline-block; margin-top: 15px; }
+            .header { padding-top: 20px; }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <h1>🦷 Panel de Administración</h1>
-        <div>
-            <a href="https://ortodoncia.onrender.com" style="color:white; margin-right:15px;">🔍 Buscador</a>
-        </div>
-    </nav>
-
     <div class="container">
-        <!-- Estadísticas -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="totalPacientes">0</div>
-                <div class="stat-label">Pacientes Registrados</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalConsultas">0</div>
-                <div class="stat-label">Consultas Este Mes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="proximasCitas">0</div>
-                <div class="stat-label">Próximas Citas</div>
-            </div>
+        <div class="header">
+            <a href="admin.html" class="admin-btn">⚙️ Administrador</a>
+            <h1>🏥 Consultorio Dental</h1>
+            <p>Búsqueda de pacientes por voz o texto</p>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('nuevo-paciente')">➕ Nuevo Paciente</button>
-            <button class="tab" onclick="showTab('nueva-consulta')">📋 Nueva Consulta</button>
-            <button class="tab" onclick="showTab('pacientes')">👥 Ver Pacientes</button>
-        </div>
-
-        <!-- Alertas -->
-        <div id="alert" class="alert" style="display:none;"></div>
-
-        <!-- Sección: Nuevo Paciente -->
-        <div id="nuevo-paciente" class="section active">
-            <div class="card">
-                <h2>Registro de Nuevo Paciente</h2>
-                <form id="formPaciente">
-                    <input type="text" id="nombre" placeholder="Nombre Completo *" required><br><br>
-                    <input type="text" id="dni" placeholder="DNI"><br><br>
-                    <input type="tel" id="telefono" placeholder="Teléfono"><br><br>
-                    <button type="submit" class="btn btn-primary">Guardar Paciente</button>
-                </form>
+        <div class="search-section">
+            <div class="search-box">
+                <div class="input-wrapper">
+                    <input type="text" id="searchInput" placeholder="Diga o escriba el nombre del paciente..." autocomplete="off">
+                    <!-- Lista de resultados flotante -->
+                    <div id="searchResults" class="search-results-list"></div>
+                </div>
+                <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
+                <button class="search-btn" onclick="buscarPaciente()">Buscar</button>
             </div>
+            <div class="status" id="status"></div>
         </div>
 
-        <!-- Sección: Nueva Consulta -->
-        <div id="nueva-consulta" class="section">
-            <div class="card">
-                <h2>Nueva Consulta y Cita</h2>
-                <p>Funcionalidad completa disponible en el backend.</p>
-            </div>
-        </div>
-
-        <!-- Sección: Ver Pacientes -->
-        <div id="pacientes" class="section">
-            <div class="card">
-                <h2>Lista de Pacientes</h2>
-                <table id="tablaPacientes" width="100%" border="1" style="border-collapse: collapse;">
-                    <thead><tr><th>Nombre</th><th>Teléfono</th><th>Última Visita</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+        <div class="results-section" id="resultados">
+            <div class="no-results">
+                🔍 Ingrese un nombre para buscar el historial del paciente
             </div>
         </div>
     </div>
 
     <script>
         const API_URL = "https://ortodoncia.onrender.com";
+        let recognition;
+        let pacienteActual = null;
 
-        // Mostrar pestañas
-        function showTab(tabId) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+        // Inicializar reconocimiento de voz
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-            if (tabId === 'pacientes') cargarPacientes();
-        }
-
-        // Mostrar alerta
-        function showAlert(message, type = 'success') {
-            const alert = document.getElementById('alert');
-            alert.style.display = 'block';
-            alert.className = `alert ${type}`;
-            alert.textContent = message;
-            setTimeout(() => alert.style.display = 'none', 5000);
-        }
-
-        // Guardar Paciente
-        document.getElementById('formPaciente').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const data = {
-                nombre_completo: document.getElementById('nombre').value,
-                dni: document.getElementById('dni').value,
-                telefono: document.getElementById('telefono').value,
-                alergias: 'Ninguna',
-                medicamentos_actuales: 'Ninguno',
-                condiciones_medicas: 'Ninguna'
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('searchInput').value = transcript;
+                document.getElementById('status').textContent = 'Buscando: "' + transcript + '"';
+                buscarPaciente(transcript);
+                document.getElementById('micBtn').classList.remove('listening');
             };
 
-            try {
-                const res = await fetch(`${API_URL}/api/pacientes`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                
-                if (res.ok) {
-                    showAlert('✅ Paciente registrado correctamente');
-                    this.reset();
-                    cargarEstadisticas();
-                } else {
-                    showAlert('❌ Error al guardar paciente', 'error');
-                }
-            } catch (err) {
-                showAlert('❌ Error de conexión', 'error');
+            recognition.onerror = (event) => {
+                console.error('Error de reconocimiento:', event.error);
+                document.getElementById('status').textContent = 'Error al escuchar. Intenta de nuevo.';
+                document.getElementById('micBtn').classList.remove('listening');
+            };
+
+            recognition.onend = () => {
+                document.getElementById('micBtn').classList.remove('listening');
+            };
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                alert('Tu navegador no soporta búsqueda por voz');
+                return;
+            }
+
+            const micBtn = document.getElementById('micBtn');
+            
+            if (micBtn.classList.contains('listening')) {
+                recognition.stop();
+                micBtn.classList.remove('listening');
+                document.getElementById('status').textContent = '';
+            } else {
+                recognition.start();
+                micBtn.classList.add('listening');
+                document.getElementById('status').textContent = '🎤 Escuchando...';
+            }
+        }
+
+        // Búsqueda en tiempo real mientras escribe
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query.length >= 2) {
+                buscarPacientesLista(query);
+            } else {
+                document.getElementById('searchResults').classList.remove('active');
             }
         });
 
-        // Cargar Estadísticas
-        async function cargarEstadisticas() {
+        // Cerrar lista al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.input-wrapper')) {
+                document.getElementById('searchResults').classList.remove('active');
+            }
+        });
+
+        async function buscarPacientesLista(query) {
             try {
-                const res = await fetch(`${API_URL}/api/estadisticas`);
-                const data = await res.json();
-                
-                document.getElementById('totalPacientes').textContent = data.total_pacientes || 0;
-                document.getElementById('totalConsultas').textContent = data.consultas_mes || 0;
-                document.getElementById('proximasCitas').textContent = data.proximas_citas || 0;
-            } catch (err) {
-                console.error("Error cargando estadísticas");
+                const response = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                mostrarListaResultados(data);
+            } catch (error) {
+                console.error('Error buscando:', error);
             }
         }
 
-        // Cargar Pacientes
-        async function cargarPacientes() {
+        function mostrarListaResultados(pacientes) {
+            const lista = document.getElementById('searchResults');
+            
+            if (pacientes.length === 0) {
+                lista.innerHTML = '<div class="search-result-item"><div class="result-info"><div class="result-name">No se encontraron pacientes</div></div></div>';
+                lista.classList.add('active');
+                return;
+            }
+
+            lista.innerHTML = pacientes.map(p => `
+                <div class="search-result-item">
+                    <div class="result-info">
+                        <div class="result-name">${p.nombre_completo}</div>
+                        <div class="result-details">${p.dni ? 'DNI: ' + p.dni : 'Sin DNI'} | ${p.telefono || 'Sin teléfono'}</div>
+                    </div>
+                    <button class="btn-ver" onclick="verPaciente(${p.id}, '${p.nombre_completo}')">Ver</button>
+                </div>
+            `).join('');
+            
+            lista.classList.add('active');
+        }
+
+        async function verPaciente(id, nombre) {
+            document.getElementById('searchResults').classList.remove('active');
+            document.getElementById('searchInput').value = nombre;
+            
+            const resultados = document.getElementById('resultados');
+            resultados.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando información del paciente...</p></div>`;
+
             try {
-                const res = await fetch(`${API_URL}/api/pacientes`);
-                const pacientes = await res.json();
+                // Obtener datos del paciente
+                const resPaciente = await fetch(`${API_URL}/api/pacientes/${id}`);
+                const paciente = await resPaciente.json();
                 
-                const tbody = document.querySelector('#tablaPacientes tbody');
-                tbody.innerHTML = pacientes.map(p => `
-                    <tr>
-                        <td>${p.nombre}</td>
-                        <td>${p.telefono || '-'}</td>
-                        <td>${p.ultima_visita || 'Sin visitas'}</td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                console.error("Error cargando pacientes");
+                // Obtener archivos del paciente
+                const resArchivos = await fetch(`${API_URL}/api/archivos/${id}`);
+                const archivos = await resArchivos.json();
+
+                mostrarDetallePaciente(paciente, archivos);
+            } catch (error) {
+                resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error al cargar los datos del paciente</div>`;
             }
         }
 
-        // Inicializar
-        window.onload = function() {
-            cargarEstadisticas();
-            cargarPacientes();
-        };
+        function mostrarDetallePaciente(paciente, archivos) {
+            pacienteActual = paciente;
+            
+            const iconosArchivo = {
+                'radiografia': '🩻',
+                'foto': '📷',
+                'documento': '📄',
+                'pdf': '📑',
+                'otro': '📎'
+            };
+
+            let archivosHtml = '';
+            if (archivos.length === 0) {
+                archivosHtml = '<div class="no-files">Este paciente no tiene archivos adjuntos</div>';
+            } else {
+                archivosHtml = `
+                    <div class="files-grid">
+                        ${archivos.map(a => `
+                            <div class="file-item" onclick="verArchivo('${a.url || a.ruta}')">
+                                <div class="file-icon">${iconosArchivo[a.tipo] || '📎'}</div>
+                                <div class="file-name">${a.descripcion || a.nombre}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            document.getElementById('resultados').innerHTML = `
+                <div class="patient-card">
+                    <div class="patient-header">
+                        <div class="patient-title">
+                            <h2>${paciente.nombre_completo}</h2>
+                            <div class="patient-id">ID: ${paciente.id} | Registrado: ${new Date(paciente.fecha_registro).toLocaleDateString('es-ES')}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="patient-grid">
+                        <div class="info-item">
+                            <div class="info-label">DNI / Documento</div>
+                            <div class="info-value">${paciente.dni || 'No registrado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Teléfono</div>
+                            <div class="info-value">${paciente.telefono || 'No registrado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">${paciente.email || 'No registrado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Fecha de Nacimiento</div>
+                            <div class="info-value">${paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No registrada'}</div>
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Dirección</div>
+                            <div class="info-value">${paciente.direccion || 'No registrada'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Alergias</div>
+                            <div class="info-value">${paciente.alergias || 'Ninguna'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Medicamentos Actuales</div>
+                            <div class="info-value">${paciente.medicamentos_actuales || 'Ninguno'}</div>
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Condiciones Médicas</div>
+                            <div class="info-value">${paciente.condiciones_medicas || 'Ninguna'}</div>
+                        </div>
+                    </div>
+
+                    <div class="archivos-section">
+                        <div class="archivos-title">📎 Archivos y Documentos (${archivos.length})</div>
+                        ${archivosHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function verArchivo(url) {
+            window.open(url, '_blank');
+        }
+
+        async function buscarPaciente(nombre = null) {
+            const query = nombre || document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            document.getElementById('searchResults').classList.remove('active');
+            
+            const resultados = document.getElementById('resultados');
+            resultados.innerHTML = `<div class="loading"><div class="spinner"></div><p>Buscando paciente...</p></div>`;
+
+            try {
+                const response = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.length === 1) {
+                    // Si hay un solo resultado, mostrarlo directamente
+                    verPaciente(data[0].id, data[0].nombre_completo);
+                } else if (data.length > 1) {
+                    // Si hay varios, mostrar la lista
+                    mostrarListaResultados(data);
+                    resultados.innerHTML = `<div class="no-results">Se encontraron ${data.length} pacientes. Selecciona uno de la lista superior.</div>`;
+                } else {
+                    resultados.innerHTML = `<div class="no-results">😕 No se encontraron pacientes con "${query}"</div>`;
+                }
+            } catch (error) {
+                resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error de conexión. Intenta más tarde.</div>`;
+            }
+        }
+
+        // Búsqueda con Enter
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscarPaciente();
+        });
     </script>
 </body>
 </html>
