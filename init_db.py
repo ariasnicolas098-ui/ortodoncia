@@ -3,9 +3,11 @@ import sqlite3
 def init_db():
     conn = sqlite3.connect('consultorio_dental.db')
     cursor = conn.cursor()
+
+    # IMPORTANTE: Habilitar claves foráneas
+    conn.execute("PRAGMA foreign_keys = ON")
     
     # Tabla pacientes
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pacientes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +34,7 @@ def init_db():
         estado TEXT DEFAULT 'programada', -- programada, completada, cancelada
         notas TEXT,
         fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+        FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
         UNIQUE(fecha, hora)  -- ¡Evita horarios duplicados!
     )
 ''')
@@ -51,7 +53,7 @@ def init_db():
             observaciones TEXT,
             proxima_cita DATE,
             odontologo TEXT,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
         )
     ''')
     
