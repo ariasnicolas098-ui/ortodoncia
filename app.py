@@ -273,6 +273,24 @@ def manejar_pacientes():
         conn.close()
         return jsonify(pacientes)
 
+@app.route('/api/pacientes/<int:paciente_id>', methods=['GET'])
+def obtener_paciente(paciente_id):
+    """Obtener un paciente específico por ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM pacientes WHERE id = ?
+    """, (paciente_id,))
+    
+    paciente = cursor.fetchone()
+    conn.close()
+    
+    if paciente:
+        return jsonify(dict(paciente))
+    else:
+        return jsonify({'error': 'Paciente no encontrado'}), 404
+
 # ========== API: CONSULTAS ==========
 @app.route('/api/consultas', methods=['POST'])
 def crear_consulta():
