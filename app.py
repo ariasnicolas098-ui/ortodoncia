@@ -65,7 +65,7 @@ def init_db():
             procedimiento TEXT,
             observaciones TEXT,
             odontologo TEXT,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
         )
     ''')
     
@@ -80,7 +80,7 @@ def init_db():
             estado TEXT DEFAULT 'programada',
             notas TEXT,
             fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
             UNIQUE(fecha, hora)
         )
     ''')
@@ -95,7 +95,7 @@ def init_db():
             descripcion TEXT,
             ruta TEXT NOT NULL,
             fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
         )
     ''')
     
