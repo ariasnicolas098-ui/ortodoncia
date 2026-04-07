@@ -575,3 +575,27 @@ if __name__ == '__main__':
 else:
     # Para producción (gunicorn)
     init_db()
+
+
+@app.route('/api/pacientes/<int:paciente_id>', methods=['DELETE'])
+def eliminar_paciente(paciente_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Primero eliminar registros relacionados (por si CASCADE no funciona)
+        cursor.execute("DELETE FROM historial_odontologico WHERE paciente_id = ?", (paciente_id,))
+        cursor.execute("DELETE FROM citas WHERE paciente_id = ?", (paciente_id,))
+        cursor.execute("DELETE FROM archivos WHERE paciente_id = ?", (paciente_id,))
+        
+        # Luego eliminar el paciente
+        cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Paciente eliminado correctamente'})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
