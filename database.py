@@ -14,6 +14,8 @@ class Database:
     def get_connection(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        # Habilitar claves foráneas
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
     
     # ========== PACIENTES ==========
