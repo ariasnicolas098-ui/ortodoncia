@@ -55,27 +55,9 @@ def init_db():
         )
     ''')
     
-    # Insertar datos de prueba
-    cursor.execute('''
-        INSERT OR IGNORE INTO pacientes (id, nombre_completo, dni, telefono, alergias)
-        VALUES 
-        (1, 'Juan Pérez García', '12345678', '555-0101', 'Alergia a la penicilina'),
-        (2, 'María Rodríguez López', '87654321', '555-0202', 'Ninguna'),
-        (3, 'Carlos Martínez Sánchez', '45678912', '555-0303', 'Diabetes tipo 2')
-    ''')
-    
-    cursor.execute('''
-        INSERT OR IGNORE INTO historial_odontologico 
-        (paciente_id, fecha_consulta, procedimiento, diagnostico, tratamiento_realizado)
-        VALUES 
-        (1, '2024-01-15', 'Limpieza dental', 'Tartaro moderado', 'Profilaxis completa'),
-        (1, '2024-02-20', 'Empaste', 'Caries en molar superior', 'Resina compuesta'),
-        (2, '2024-03-10', 'Extracción', 'Tercer molar impactado', 'Extracción quirúrgica')
-    ''')
-    
-    conn.commit()
-    conn.close()
-    print("✅ Base de datos creada exitosamente")
+conn.commit()
+conn.close()
+print("✅ Base de datos inicializada correctamente")
 
 if __name__ == '__main__':
     init_db()
