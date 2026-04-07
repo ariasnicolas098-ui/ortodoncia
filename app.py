@@ -123,30 +123,6 @@ def init_db():
         )
     ''')
     
-    # Datos de prueba
-    cursor.execute("SELECT COUNT(*) FROM pacientes")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute('''
-            INSERT INTO pacientes (nombre_completo, dni, telefono, alergias)
-            VALUES 
-            ('Juan Pérez García', '12345678', '555-0101', 'Penicilina'),
-            ('María Rodríguez López', '87654321', '555-0202', 'Ninguna'),
-            ('Carlos Martínez Sánchez', '45678912', '555-0303', 'Diabetes tipo 2')
-        ''')
-        
-        cursor.execute('''
-            INSERT INTO historial_odontologico 
-            (paciente_id, fecha_consulta, hora_consulta, procedimiento, diagnostico, tratamiento_realizado)
-            VALUES 
-            (1, '2024-01-15', '09:00', 'Limpieza dental', 'Tartaro moderado', 'Profilaxis completa'),
-            (1, '2024-02-20', '10:30', 'Empaste', 'Caries en molar superior', 'Resina compuesta'),
-            (2, '2024-03-10', '14:00', 'Extracción', 'Tercer molar impactado', 'Extracción quirúrgica')
-        ''')
-    
-    conn.commit()
-    conn.close()
-    print("✅ Base de datos inicializada correctamente")
-
 # ========== RUTAS DE VISTAS ==========
 @app.route('/')
 def index():
