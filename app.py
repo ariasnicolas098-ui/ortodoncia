@@ -575,3 +575,40 @@ if __name__ == '__main__':
 else:
     # Para producción (gunicorn)
     init_db()
+
+@app.route('/api/limpiar-datos-prueba', methods=['POST'])
+def limpiar_datos_prueba():
+    """Endpoint temporal para eliminar datos de prueba - ELIMINAR DESPUÉS DE USAR"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # IDs de los pacientes de prueba
+    dnis_prueba = ['12345678', '87654321', '45678912']
+    
+    for dni in dnis_prueba:
+        # Obtener ID del paciente
+        cursor.execute("SELECT id FROM pacientes WHERE dni = ?", (dni,))
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            paciente_id = resultado['id']
+            
+            # Eliminar historial relacionado
+            cursor.execute("DELETE FROM historial_odontologico WHERE paciente_id = ?", (paciente_id,))
+            
+            # Eliminar citas relacionadas
+            cursor.execute("DELETE FROM citas WHERE paciente_id = ?", (paciente_id,))
+            
+            # Eliminar archivos relacionados
+            cursor.execute("DELETE FROM archivos WHERE paciente_id = ?", (paciente_id,))
+            
+            # Eliminar paciente
+            cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Datos de prueba eliminados. Elimina este endpoint después de usar.'
+    })
