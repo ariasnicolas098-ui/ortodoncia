@@ -124,7 +124,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("✅ Base de datos inicializada correctamente")   
+    print("✅ Base de datos inicializada correctamente")
 
 # ========== RUTAS DE VISTAS ==========
 @app.route('/')
