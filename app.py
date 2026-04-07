@@ -122,9 +122,9 @@ def init_db():
             FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
         )
     ''')
-conn.commit()
-conn.close()
-print("✅ Base de datos inicializada correctamente")   
+    conn.commit()
+    conn.close()
+    print("✅ Base de datos inicializada correctamente")   
 
 # ========== RUTAS DE VISTAS ==========
 @app.route('/')
