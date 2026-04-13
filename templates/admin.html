@@ -1156,7 +1156,7 @@
                         <td>${p.ultima_visita || 'Sin visitas'}</td>
                         <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
                         <td>
-                            <button onclick="verHistorial(${p.id})" class="btn btn-primary btn-small">📋 Historial</button>
+                            <button onclick="verHistorial(${p.id}, '${p.nombre.replace(/'/g, "\\'")}')" class="btn btn-primary btn-small">📋 Historial</button>
                             <button onclick="eliminarPaciente(${p.id})" class="btn btn-danger btn-small">🗑️ Eliminar</button>
                         </td>
                     </tr>
@@ -1167,7 +1167,10 @@
             }
         }
 
-        function verHistorial(id) { window.open(`https://ortodoncia.onrender.com/?paciente_id=${id}`); }
+        function verHistorial(id, nombre) { 
+    // Codificar el nombre para URL (espacios se convierten en %20)
+    const nombreCodificado = encodeURIComponent(nombre);
+    window.location.href = `https://ortodoncia.onrender.com/?paciente_id=${id}&nombre=${nombreCodificado}`; }
 
         async function eliminarPaciente(id) {
             if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer y eliminará también todos sus archivos asociados.')) return;
