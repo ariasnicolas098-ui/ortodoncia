@@ -385,63 +385,7 @@
             color: #2e7d32;
         }
 
-        .files-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        .file-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-            position: relative;
-        }
-
-        .file-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-color: #667eea;
-        }
-
-        .file-icon-big {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .file-name {
-            font-size: 0.9em;
-            color: #333;
-            word-break: break-word;
-            margin-bottom: 5px;
-        }
-
-        .file-meta {
-            font-size: 0.8em;
-            color: #666;
-        }
-
-        .file-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 14px;
-            margin-right: 5px;
-        }
-
-        .btn-xs {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-
+        /* ===== ESTILOS NUEVOS PARA SUBIR ARCHIVOS ===== */
         .upload-methods {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -611,6 +555,63 @@
             border-radius: 10px;
         }
 
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .file-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .file-icon-big {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .file-name {
+            font-size: 0.9em;
+            color: #333;
+            word-break: break-word;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .file-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .btn-xs {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
         .file-image-preview {
             width: 100%;
             height: 100px;
@@ -619,6 +620,7 @@
             margin-bottom: 10px;
             cursor: pointer;
         }
+        /* ===== FIN ESTILOS NUEVOS ===== */
     </style>
 </head>
 <body>
@@ -843,6 +845,7 @@
             </div>
         </div>
 
+        <!-- ===== SECCIÓN SUBIR ARCHIVOS COMPLETA ===== -->
         <div id="archivos" class="section">
             <div class="card">
                 <h2 style="margin-bottom: 25px; color: #333;">📎 Gestión de Archivos y Radiografías</h2>
@@ -887,7 +890,6 @@
                                     <input type="file" id="file_input_trad" required style="padding: 10px; border: 2px dashed #667eea; border-radius: 10px; width: 100%;">
                                     <small style="color: #666; margin-top: 5px; display: block;">Formatos permitidos: imágenes, PDF, Word, Excel, etc. (Máx. 10MB)</small>
                                 </div>
-                                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">📤 Subir Archivo</button>
                             </form>
                         </div>
                         <div class="upload-section">
@@ -928,10 +930,18 @@
                             <div id="uploadQueue" class="upload-queue" style="display: none;">
                                 <h4 style="margin: 15px 0 10px; color: #333;">📋 Archivos en cola:</h4>
                                 <div id="queueList"></div>
-                                <button type="button" class="btn btn-success" onclick="procesarCola()" style="margin-top: 15px; width: 100%;">🚀 Subir todos los archivos</button>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- BOTÓN UNIFICADO -->
+                    <div style="text-align: center; margin: 25px 0;">
+                        <button type="button" class="btn btn-primary" id="btnSubirUnificado" onclick="subirArchivosUnificado()" style="padding: 18px 60px; font-size: 1.1em; border-radius: 50px; box-shadow: 0 6px 20px rgba(102,126,234,0.4);">
+                            📤 Subir Archivos
+                        </button>
+                        <p id="mensajeSubir" style="margin-top: 10px; color: #999; font-size: 14px;">Selecciona archivos con cualquiera de los métodos y haz clic aquí</p>
+                    </div>
+
                     <div id="uploadProgress" class="upload-progress" style="display: none;">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill"></div>
@@ -947,6 +957,7 @@
                 </div>
             </div>
         </div>
+        <!-- ===== FIN SECCIÓN SUBIR ARCHIVOS ===== -->
     </div>
 
     <script>
@@ -1156,7 +1167,7 @@
                         <td>${p.ultima_visita || 'Sin visitas'}</td>
                         <td>${p.proxima_cita ? `<span class="badge badge-blue">${p.proxima_cita}</span>` : '-'}</td>
                         <td>
-                            <button onclick="verHistorial(${p.id}, '${p.nombre.replace(/'/g, "\\'")}')" class="btn btn-primary btn-small">📋 Historial</button>
+                            <button onclick="verHistorial(${p.id})" class="btn btn-primary btn-small">📋 Historial</button>
                             <button onclick="eliminarPaciente(${p.id})" class="btn btn-danger btn-small">🗑️ Eliminar</button>
                         </td>
                     </tr>
@@ -1167,10 +1178,7 @@
             }
         }
 
-        function verHistorial(id, nombre) { 
-    // Codificar el nombre para URL (espacios se convierten en %20)
-    const nombreCodificado = encodeURIComponent(nombre);
-    window.location.href = `https://ortodoncia.onrender.com/?paciente_id=${id}&nombre=${nombreCodificado}`; }
+        function verHistorial(id) { window.open(`https://ortodoncia.onrender.com/?paciente_id=${id}`, '_blank'); }
 
         async function eliminarPaciente(id) {
             if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer y eliminará también todos sus archivos asociados.')) return;
@@ -1184,6 +1192,7 @@
             } catch (err) { showAlert('Error de conexión al eliminar', 'error'); }
         }
 
+        // ===== FUNCIONES PARA SUBIR ARCHIVOS =====
         async function filtrarPacientesArchivo(query) {
             if (query.length < 2) {
                 document.getElementById('listaPacientesArchivo').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
@@ -1298,8 +1307,6 @@
                 colaSubida = colaSubida.filter(i => i.status !== 'success');
                 if (colaSubida.length === 0) document.getElementById('uploadQueue').style.display = 'none';
                 mostrarCola();
-                cargarArchivosPaciente(pacienteArchivoActual);
-                showAlert('Archivos subidos correctamente');
             }, 1000);
         }
 
@@ -1345,6 +1352,58 @@
             } catch (err) { showAlert('Error al eliminar', 'error'); }
         }
 
+        // ===== FUNCIÓN UNIFICADA DE SUBIR =====
+        async function subirArchivosUnificado() {
+            if (!pacienteArchivoActual) {
+                showAlert('Seleccione un paciente primero', 'error');
+                return;
+            }
+
+            const fileInputTrad = document.getElementById('file_input_trad');
+            const tipoTrad = document.getElementById('tipo_archivo_trad').value;
+            const tieneMetodo1 = fileInputTrad.files.length > 0 && tipoTrad;
+            const tieneMetodo2 = colaSubida.filter(i => i.status === 'pending').length > 0;
+
+            if (!tieneMetodo1 && !tieneMetodo2) {
+                showAlert('Selecciona al menos un archivo para subir', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnSubirUnificado');
+            btn.disabled = true;
+            btn.textContent = '⏳ Subiendo...';
+
+            // Subir archivo de Método 1 si tiene archivo
+            if (tieneMetodo1) {
+                const formData = new FormData();
+                formData.append('paciente_id', pacienteArchivoActual);
+                formData.append('tipo', tipoTrad);
+                formData.append('descripcion', document.getElementById('descripcion_archivo_trad').value);
+                formData.append('archivo', fileInputTrad.files[0]);
+                try {
+                    const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                    if (res.ok) {
+                        document.getElementById('uploadFormTradicional').reset();
+                    } else {
+                        const err = await res.json();
+                        showAlert('Error Método 1: ' + (err.error || 'Error desconocido'), 'error');
+                    }
+                } catch (err) {
+                    showAlert('Error al subir archivo: ' + err.message, 'error');
+                }
+            }
+
+            // Subir cola de Método 2 si tiene archivos
+            if (tieneMetodo2) {
+                await procesarCola();
+            }
+
+            btn.disabled = false;
+            btn.textContent = '📤 Subir Archivos';
+            cargarArchivosPaciente(pacienteArchivoActual);
+            if (tieneMetodo1 || tieneMetodo2) showAlert('¡Archivos subidos correctamente!');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const formTrad = document.getElementById('uploadFormTradicional');
             if (formTrad) {
@@ -1364,6 +1423,7 @@
                 });
             }
         });
+        // ===== FIN FUNCIONES SUBIR ARCHIVOS =====
     </script>
 </body>
 </html>
