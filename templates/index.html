@@ -401,31 +401,62 @@
         let recognition;
         let pacienteActual = null;
 
+        // ========== NUEVO: Precargar datos desde URL al iniciar ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar si venimos del panel de admin con datos precargados
+            const urlParams = new URLSearchParams(window.location.search);
+            const pacienteId = urlParams.get('paciente_id');
+            const nombrePaciente = urlParams.get('nombre');
+            
+            if (pacienteId && nombrePaciente) {
+                // Precargar el nombre en el buscador
+                const nombreDecodificado = decodeURIComponent(nombrePaciente);
+                document.getElementById('searchInput').value = nombreDecodificado;
+                
+                // Mostrar estado de carga
+                document.getElementById('status').textContent = `Cargando datos de ${nombreDecodificado}...`;
+                
+                // Buscar automáticamente el paciente después de un pequeño delay
+                setTimeout(() => {
+                    verPaciente(pacienteId, nombreDecodificado);
+                }, 300);
+                
+                // Limpiar la URL para que quede limpia (opcional)
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // Inicializar reconocimiento de voz
+            initVoiceRecognition();
+        });
+        // ================================================================
+
         // Inicializar reconocimiento de voz
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
-            recognition.continuous = false;
-            recognition.interimResults = false;
+        function initVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'es-ES';
+                recognition.continuous = false;
+                recognition.interimResults = false;
 
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('searchInput').value = transcript;
-                document.getElementById('status').textContent = 'Buscando: "' + transcript + '"';
-                buscarPaciente(transcript);
-                document.getElementById('micBtn').classList.remove('listening');
-            };
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('searchInput').value = transcript;
+                    document.getElementById('status').textContent = 'Buscando: "' + transcript + '"';
+                    buscarPaciente(transcript);
+                    document.getElementById('micBtn').classList.remove('listening');
+                };
 
-            recognition.onerror = (event) => {
-                console.error('Error de reconocimiento:', event.error);
-                document.getElementById('status').textContent = 'Error al escuchar. Intenta de nuevo.';
-                document.getElementById('micBtn').classList.remove('listening');
-            };
+                recognition.onerror = (event) => {
+                    console.error('Error de reconocimiento:', event.error);
+                    document.getElementById('status').textContent = 'Error al escuchar. Intenta de nuevo.';
+                    document.getElementById('micBtn').classList.remove('listening');
+                };
 
-            recognition.onend = () => {
-                document.getElementById('micBtn').classList.remove('listening');
-            };
+                recognition.onend = () => {
+                    document.getElementById('micBtn').classList.remove('listening');
+                };
+            }
         }
 
         function toggleVoice() {
@@ -489,7 +520,7 @@
                         <div class="result-name">${p.nombre_completo}</div>
                         <div class="result-details">${p.dni ? 'DNI: ' + p.dni : 'Sin DNI'} | ${p.telefono || 'Sin teléfono'}</div>
                     </div>
-                    <button class="btn-ver" onclick="verPaciente(${p.id}, '${p.nombre_completo}')">Ver</button>
+                    <button class="btn-ver" onclick="verPaciente(${p.id}, '${p.nombre_completo.replace(/'/g, "\\'")}')">Ver</button>
                 </div>
             `).join('');
             
