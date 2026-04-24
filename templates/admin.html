@@ -621,6 +621,118 @@
             cursor: pointer;
         }
         /* ===== FIN ESTILOS NUEVOS ===== */
+        .condicion-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        }
+
+        .condicion-info {
+            flex: 1;
+        }
+
+        .condicion-nombre {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .condicion-precio {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .condicion-acciones {
+            display: flex;
+            gap: 10px;
+        }
+
+        .abono-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .abono-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .abono-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .abono-titulo {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .abono-estado {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .estado-pendiente { background: #fff3e0; color: #e65100; }
+        .estado-abonado { background: #e3f2fd; color: #1565c0; }
+        .estado-pagado { background: #e8f5e9; color: #2e7d32; }
+
+        .abono-detalles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .abono-monto {
+            text-align: center;
+        }
+
+        .abono-monto-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .abono-monto-valor {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .abono-progreso {
+            margin-top: 10px;
+        }
+
+        .barra-progreso {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progreso-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 5px;
+            transition: width 0.5s;
+        }
     </style>
 </head>
 <body>
@@ -644,6 +756,7 @@
             <button class="tab" onclick="showTab('nueva-consulta')">📋 Nueva Consulta</button>
             <button class="tab" onclick="showTab('pacientes')">👥 Ver Pacientes</button>
             <button class="tab" onclick="showTab('archivos')">📎 Subir Archivos</button>
+            <button class="tab" onclick="showTab('abonos')">💰 Abonos</button>
         </div>
 
         <div id="alert" class="alert"></div>
@@ -958,6 +1071,146 @@
             </div>
         </div>
         <!-- ===== FIN SECCIÓN SUBIR ARCHIVOS ===== -->
+
+        <div id="abonos" class="section">
+    <!-- CONFIGURACIÓN DE PRECIOS -->
+    <div class="card">
+        <h2 style="margin-bottom: 25px; color: #333;">⚙️ Configuración de Precios por Condición</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nueva Condición / Procedimiento</label>
+                <input type="text" id="nuevaCondicion" placeholder="Ej: Caries, Limpieza, Extracción...">
+            </div>
+            <div class="form-group">
+                <label>Precio Base ($)</label>
+                <input type="number" id="precioCondicion" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button onclick="agregarCondicion()" class="btn btn-success">➕ Agregar Condición</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 25px;">
+            <h3 style="color: #555; margin-bottom: 15px;">📋 Condiciones Registradas</h3>
+            <div id="listaCondiciones" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: #999;">Cargando condiciones...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASIGNAR ABONO A PACIENTE -->
+    <div class="card" style="margin-top: 20px;">
+        <h2 style="margin-bottom: 25px; color: #333;">💳 Registrar Abono / Deuda por Paciente</h2>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Buscar Paciente *</label>
+            <div class="voice-input">
+                <input type="text" id="buscarPacienteAbono" placeholder="Escriba el nombre del paciente..." oninput="filtrarPacientesAbono(this.value)">
+                <button type="button" class="voice-btn" onclick="dictar('buscarPacienteAbono')" title="Dictar">🎤</button>
+            </div>
+        </div>
+        <div class="patient-list" id="listaPacientesAbono" style="margin-bottom: 25px; max-height: 150px;">
+            <p style="color: #999; text-align: center; padding: 20px;">Escriba arriba para buscar pacientes...</p>
+        </div>
+
+        <div id="formAbono" style="display: none;">
+            <div class="alert" style="display: flex; margin-bottom: 20px; background: #e3f2fd; color: #1976d2;">
+                Paciente: <b id="nombrePacienteAbono"></b>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Condición / Procedimiento *</label>
+                    <select id="condicionAbono" onchange="actualizarPrecioSugerido()">
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Precio Total ($) *</label>
+                    <input type="number" id="precioTotalAbono" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Abono Inicial ($)</label>
+                    <input type="number" id="abonoInicial" min="0" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="estadoAbono">
+                        <option value="pendiente">⏳ Pendiente</option>
+                        <option value="abonado">💳 Abonado (parcial)</option>
+                        <option value="pagado">✅ Pagado completo</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group full-width" style="margin-top: 15px;">
+                <label>Notas / Observaciones</label>
+                <textarea id="notasAbono" placeholder="Detalles del tratamiento, número de sesiones, etc."></textarea>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <button onclick="guardarAbono()" class="btn btn-primary">💾 Guardar Abono</button>
+            </div>
+        </div>
+
+        <!-- HISTORIAL DE ABONOS DEL PACIENTE -->
+                <div id="historialAbonosPaciente" style="margin-top: 30px; display: none;">
+                    <h3 style="color: #555; margin-bottom: 15px;">📊 Historial de Abonos</h3>
+                    <div id="tablaAbonosPaciente"></div>
+                    
+                    <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <strong style="color: #667eea;">Total Deuda:</strong>
+                                <span id="totalDeudaPaciente" style="font-size: 1.3em; color: #f44336;">$0.00</span>
+                            </div>
+                            <div>
+                                <strong style="color: #667eea;">Total Abonado:</strong>
+                                <span id="totalAbonadoPaciente" style="font-size: 1.3em; color: #4CAF50;">$0.00</span>
+                            </div>
+                            <div>
+                                <strong style="color: #667eea;">Saldo Pendiente:</strong>
+                                <span id="saldoPendientePaciente" style="font-size: 1.3em; color: #FF9800;">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AGREGAR PAGO ADICIONAL -->
+                    <div id="agregarPagoExtra" style="margin-top: 20px; padding: 20px; border: 2px dashed #667eea; border-radius: 10px; display: none;">
+                        <h4 style="color: #555; margin-bottom: 15px;">➕ Agregar Pago / Abono Adicional</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Monto a Abonar ($)</label>
+                                <input type="number" id="montoPagoExtra" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: flex-end;">
+                                <button onclick="agregarPagoAdicional()" class="btn btn-success">💵 Registrar Pago</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESUMEN GENERAL DE ABONOS -->
+            <div class="card" style="margin-top: 20px;">
+                <h2 style="margin-bottom: 25px; color: #333;">📈 Resumen General de Abonos</h2>
+                <div class="stats" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalPacientesConDeuda" style="color: #f44336;">0</div>
+                        <div class="stat-label">Pacientes con Deuda</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalIngresosMes" style="color: #4CAF50;">$0</div>
+                        <div class="stat-label">Ingresos Este Mes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalPorCobrar" style="color: #FF9800;">$0</div>
+                        <div class="stat-label">Total por Cobrar</div>
+                    </div>
+                </div>
+                <div id="listaGeneralAbonos"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -967,6 +1220,9 @@
         let citaSeleccionada = null;
         let colaSubida = [];
         let pacienteArchivoActual = null;
+        let pacienteAbonoActual = null;
+        let abonoSeleccionadoId = null;
+        let condicionesPrecios = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
@@ -975,6 +1231,10 @@
             document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
             document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
             cargarPacientes();
+            
+            // Inicializar sistema de abonos
+            cargarCondiciones();
+            cargarResumenAbonos();
         });
 
         function showTab(tabId) {
@@ -1426,6 +1686,366 @@
             }
         });
         // ===== FIN FUNCIONES SUBIR ARCHIVOS =====
+
+        // ========== CONFIGURACIÓN DE CONDICIONES/PRECIOS ==========
+async function cargarCondiciones() {
+    try {
+        const res = await fetch(`${API_URL}/api/condiciones`);
+        condicionesPrecios = await res.json();
+        mostrarCondiciones();
+        actualizarSelectCondiciones();
+    } catch (err) {
+        console.error('Error cargando condiciones:', err);
+    }
+}
+
+function mostrarCondiciones() {
+    const container = document.getElementById('listaCondiciones');
+    if (condicionesPrecios.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No hay condiciones registradas. Agrega la primera arriba.</p>';
+        return;
+    }
+    container.innerHTML = condicionesPrecios.map(c => `
+        <div class="condicion-item" id="condicion-${c.id}">
+            <div class="condicion-info">
+                <div class="condicion-nombre">${c.nombre}</div>
+            </div>
+            <div class="condicion-precio">
+                $${parseFloat(c.precio).toFixed(2)}
+            </div>
+            <div class="condicion-acciones">
+                <button onclick="editarCondicion(${c.id})" class="btn btn-primary btn-xs">✏️</button>
+                <button onclick="eliminarCondicion(${c.id})" class="btn btn-danger btn-xs">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function actualizarSelectCondiciones() {
+    const select = document.getElementById('condicionAbono');
+    select.innerHTML = '<option value="">Seleccione...</option>' +
+        condicionesPrecios.map(c => `<option value="${c.id}" data-precio="${c.precio}">${c.nombre} - $${parseFloat(c.precio).toFixed(2)}</option>`).join('');
+}
+
+function actualizarPrecioSugerido() {
+    const select = document.getElementById('condicionAbono');
+    const option = select.options[select.selectedIndex];
+    if (option && option.dataset.precio) {
+        document.getElementById('precioTotalAbono').value = option.dataset.precio;
+    }
+}
+
+async function agregarCondicion() {
+    const nombre = document.getElementById('nuevaCondicion').value.trim();
+    const precio = document.getElementById('precioCondicion').value;
+    
+    if (!nombre || !precio) {
+        showAlert('Ingrese nombre y precio de la condición', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API_URL}/api/condiciones`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nombre, precio: parseFloat(precio)})
+        });
+        if (res.ok) {
+            showAlert('Condición agregada correctamente');
+            document.getElementById('nuevaCondicion').value = '';
+            document.getElementById('precioCondicion').value = '';
+            cargarCondiciones();
+        }
+    } catch (err) {
+        showAlert('Error al agregar condición', 'error');
+    }
+}
+
+async function editarCondicion(id) {
+    const condicion = condicionesPrecios.find(c => c.id === id);
+    if (!condicion) return;
+    
+    const nuevoNombre = prompt('Nuevo nombre:', condicion.nombre);
+    if (nuevoNombre === null) return;
+    
+    const nuevoPrecio = prompt('Nuevo precio:', condicion.precio);
+    if (nuevoPrecio === null) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/api/condiciones/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nombre: nuevoNombre, precio: parseFloat(nuevoPrecio)})
+        });
+        if (res.ok) {
+            showAlert('Condición actualizada');
+            cargarCondiciones();
+        }
+    } catch (err) {
+        showAlert('Error al actualizar', 'error');
+    }
+}
+
+async function eliminarCondicion(id) {
+    if (!confirm('¿Eliminar esta condición? Los abonos existentes no se verán afectados.')) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/api/condiciones/${id}`, {method: 'DELETE'});
+        if (res.ok) {
+            showAlert('Condición eliminada');
+            cargarCondiciones();
+        }
+    } catch (err) {
+        showAlert('Error al eliminar', 'error');
+    }
+}
+
+// ========== BUSCADOR DE PACIENTES PARA ABONOS ==========
+async function filtrarPacientesAbono(query) {
+    if (query.length < 2) {
+        document.getElementById('listaPacientesAbono').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Escriba al menos 2 caracteres...</p>';
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+        const pacientes = await res.json();
+        const lista = document.getElementById('listaPacientesAbono');
+        if (pacientes.length === 0) {
+            lista.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No se encontraron pacientes</p>';
+            return;
+        }
+        lista.innerHTML = pacientes.map(p => `
+            <div class="patient-item" onclick="seleccionarPacienteAbono(${p.id}, '${p.nombre_completo.replace(/'/g, "\\'")}')">
+                <strong>${p.nombre_completo}</strong><br>
+                <small>${p.dni || 'Sin DNI'}</small>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function seleccionarPacienteAbono(id, nombre) {
+    pacienteAbonoActual = id;
+    document.getElementById('nombrePacienteAbono').textContent = nombre;
+    document.getElementById('formAbono').style.display = 'block';
+    document.querySelectorAll('#listaPacientesAbono .patient-item').forEach(el => el.classList.remove('selected'));
+    event.target.closest('.patient-item').classList.add('selected');
+    
+    // Cargar historial de abonos del paciente
+    cargarAbonosPaciente(id);
+    
+    // Mostrar sección de historial
+    document.getElementById('historialAbonosPaciente').style.display = 'block';
+}
+
+    // ========== GESTIÓN DE ABONOS ==========
+    async function guardarAbono() {
+        if (!pacienteAbonoActual) {
+            showAlert('Seleccione un paciente primero', 'error');
+            return;
+        }
+        
+        const condicionId = document.getElementById('condicionAbono').value;
+        const precioTotal = document.getElementById('precioTotalAbono').value;
+        const abonoInicial = document.getElementById('abonoInicial').value;
+        const estado = document.getElementById('estadoAbono').value;
+        const notas = document.getElementById('notasAbono').value;
+        
+        if (!condicionId || !precioTotal) {
+            showAlert('Seleccione condición y precio', 'error');
+            return;
+        }
+        
+        const data = {
+            paciente_id: pacienteAbonoActual,
+            condicion_id: condicionId,
+            precio_total: parseFloat(precioTotal),
+            abono_inicial: parseFloat(abonoInicial) || 0,
+            estado: estado,
+            notas: notas
+        };
+        
+        try {
+            const res = await fetch(`${API_URL}/api/abonos`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                showAlert('Abono registrado correctamente');
+                // Limpiar formulario
+                document.getElementById('condicionAbono').value = '';
+                document.getElementById('precioTotalAbono').value = '';
+                document.getElementById('abonoInicial').value = '0';
+                document.getElementById('notasAbono').value = '';
+                // Recargar historial
+                cargarAbonosPaciente(pacienteAbonoActual);
+                cargarResumenAbonos();
+            }
+        } catch (err) {
+            showAlert('Error al guardar abono', 'error');
+        }
+    }
+
+    async function cargarAbonosPaciente(pacienteId) {
+        try {
+            const res = await fetch(`${API_URL}/api/abonos/paciente/${pacienteId}`);
+            const abonos = await res.json();
+            
+            const container = document.getElementById('tablaAbonosPaciente');
+            
+            if (abonos.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Este paciente no tiene abonos registrados</p>';
+                document.getElementById('agregarPagoExtra').style.display = 'none';
+                actualizarTotales(0, 0, 0);
+                return;
+            }
+            
+            let totalDeuda = 0;
+            let totalAbonado = 0;
+            
+            container.innerHTML = abonos.map(a => {
+                totalDeuda += parseFloat(a.precio_total);
+                totalAbonado += parseFloat(a.total_abonado);
+                
+                const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
+                const estadoClass = a.estado === 'pagado' ? 'estado-pagado' : a.estado === 'abonado' ? 'estado-abonado' : 'estado-pendiente';
+                const estadoTexto = a.estado === 'pagado' ? '✅ Pagado' : a.estado === 'abonado' ? '💳 Abonado' : '⏳ Pendiente';
+                
+                return `
+                    <div class="abono-card" onclick="seleccionarAbonoParaPago(${a.id})" style="cursor: pointer;">
+                        <div class="abono-header">
+                            <div class="abono-titulo">${a.condicion_nombre}</div>
+                            <span class="abono-estado ${estadoClass}">${estadoTexto}</span>
+                        </div>
+                        <div class="abono-detalles">
+                            <div class="abono-monto">
+                                <div class="abono-monto-label">Precio Total</div>
+                                <div class="abono-monto-valor" style="color: #333;">$${parseFloat(a.precio_total).toFixed(2)}</div>
+                            </div>
+                            <div class="abono-monto">
+                                <div class="abono-monto-label">Abonado</div>
+                                <div class="abono-monto-valor" style="color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</div>
+                            </div>
+                            <div class="abono-monto">
+                                <div class="abono-monto-label">Saldo</div>
+                                <div class="abono-monto-valor" style="color: #f44336;">$${(parseFloat(a.precio_total) - parseFloat(a.total_abonado)).toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div class="abono-progreso">
+                            <div class="barra-progreso">
+                                <div class="progreso-fill" style="width: ${porcentaje}%; background: ${porcentaje >= 100 ? '#4CAF50' : porcentaje > 0 ? '#FF9800' : '#e0e0e0'};"></div>
+                            </div>
+                            <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">${porcentaje.toFixed(0)}% pagado</div>
+                        </div>
+                        ${a.notas ? `<div style="margin-top: 10px; font-size: 13px; color: #666;"><strong>Notas:</strong> ${a.notas}</div>` : ''}
+                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Fecha: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            actualizarTotales(totalDeuda, totalAbonado, totalDeuda - totalAbonado);
+            
+            // Mostrar botón de pago adicional si hay abonos pendientes
+            const tienePendientes = abonos.some(a => a.estado !== 'pagado');
+            document.getElementById('agregarPagoExtra').style.display = tienePendientes ? 'block' : 'none';
+            
+        } catch (err) {
+            console.error('Error cargando abonos:', err);
+        }
+    }
+
+    function actualizarTotales(deuda, abonado, pendiente) {
+        document.getElementById('totalDeudaPaciente').textContent = `$${deuda.toFixed(2)}`;
+        document.getElementById('totalAbonadoPaciente').textContent = `$${abonado.toFixed(2)}`;
+        document.getElementById('saldoPendientePaciente').textContent = `$${pendiente.toFixed(2)}`;
+    }
+
+    function seleccionarAbonoParaPago(abonoId) {
+        abonoSeleccionadoId = abonoId;
+        // Scroll al área de pago
+        document.getElementById('agregarPagoExtra').scrollIntoView({behavior: 'smooth'});
+    }
+
+    async function agregarPagoAdicional() {
+        if (!abonoSeleccionadoId) {
+            showAlert('Seleccione un abono de la lista haciendo clic en él', 'error');
+            return;
+        }
+        
+        const monto = document.getElementById('montoPagoExtra').value;
+        if (!monto || parseFloat(monto) <= 0) {
+            showAlert('Ingrese un monto válido', 'error');
+            return;
+        }
+        
+        try {
+            const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({monto: parseFloat(monto)})
+            });
+            
+            if (res.ok) {
+                showAlert('Pago registrado correctamente');
+                document.getElementById('montoPagoExtra').value = '';
+                cargarAbonosPaciente(pacienteAbonoActual);
+                cargarResumenAbonos();
+            }
+        } catch (err) {
+            showAlert('Error al registrar pago', 'error');
+        }
+    }
+
+    // ========== RESUMEN GENERAL ==========
+    async function cargarResumenAbonos() {
+        try {
+            const res = await fetch(`${API_URL}/api/abonos/resumen`);
+            const data = await res.json();
+            
+            document.getElementById('totalPacientesConDeuda').textContent = data.pacientes_con_deuda;
+            document.getElementById('totalIngresosMes').textContent = `$${parseFloat(data.ingresos_mes).toFixed(2)}`;
+            document.getElementById('totalPorCobrar').textContent = `$${parseFloat(data.por_cobrar).toFixed(2)}`;
+            
+            // Lista general
+            const container = document.getElementById('listaGeneralAbonos');
+            if (data.abonos.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center;">No hay abonos registrados</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Condición</th>
+                            <th>Total</th>
+                            <th>Abonado</th>
+                            <th>Saldo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.abonos.map(a => `
+                            <tr>
+                                <td><strong>${a.paciente_nombre}</strong></td>
+                                <td>${a.condicion_nombre}</td>
+                                <td>$${parseFloat(a.precio_total).toFixed(2)}</td>
+                                <td style="color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</td>
+                                <td style="color: ${a.saldo > 0 ? '#f44336' : '#4CAF50'};">$${parseFloat(a.saldo).toFixed(2)}</td>
+                                <td><span class="badge ${a.estado === 'pagado' ? 'badge-green' : a.estado === 'abonado' ? 'badge-blue' : 'badge-red'}">${a.estado}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+        } catch (err) {
+            console.error('Error cargando resumen:', err);
+        }
+    }
     </script>
 </body>
 </html>
