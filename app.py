@@ -65,7 +65,7 @@ def init_db():
             procedimiento TEXT,
             observaciones TEXT,
             odontologo TEXT,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
         )
     ''')
     
@@ -80,7 +80,7 @@ def init_db():
             estado TEXT DEFAULT 'programada',
             notas TEXT,
             fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
             UNIQUE(fecha, hora)
         )
     ''')
@@ -95,7 +95,7 @@ def init_db():
             descripcion TEXT,
             ruta TEXT NOT NULL,
             fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
         )
     ''')
     
@@ -122,6 +122,42 @@ def init_db():
             FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS condiciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            precio REAL NOT NULL,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Tabla abonos
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS abonos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            paciente_id INTEGER NOT NULL,
+            condicion_id INTEGER NOT NULL,
+            precio_total REAL NOT NULL,
+            total_abonado REAL DEFAULT 0,
+            estado TEXT DEFAULT 'pendiente',
+            notas TEXT,
+            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+            FOREIGN KEY (condicion_id) REFERENCES condiciones(id)
+        )
+    ''')
+    
+    # Tabla pagos (historial de pagos por abono)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pagos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            abono_id INTEGER NOT NULL,
+            monto REAL NOT NULL,
+            fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (abono_id) REFERENCES abonos(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
     print("✅ Base de datos inicializada correctamente")
@@ -583,6 +619,193 @@ def whatsapp_enviar_recordatorio(cita_id):
     # Por ahora solo marcamos que se envió
     return jsonify({'success': True})
 
+# ========== API: CONDICIONES/PRECIOS ==========
+@app.route('/api/condiciones', methods=['GET', 'POST'])
+def manejar_condiciones():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        try:
+            cursor.execute('''
+                INSERT INTO condiciones (nombre, precio) VALUES (?, ?)
+            ''', (data['nombre'], data['precio']))
+            conn.commit()
+            return jsonify({'success': True, 'id': cursor.lastrowid}), 201
+        except sqlite3.IntegrityError:
+            return jsonify({'error': 'Condición ya existe'}), 400
+        finally:
+            conn.close()
+    
+    else:
+        cursor.execute('SELECT * FROM condiciones ORDER BY nombre')
+        condiciones = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify(condiciones)
+
+@app.route('/api/condiciones/<int:id>', methods=['PUT', 'DELETE'])
+def modificar_condicion(id):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'PUT':
+        data = request.get_json()
+        cursor.execute('''
+            UPDATE condiciones SET nombre = ?, precio = ? WHERE id = ?
+        ''', (data['nombre'], data['precio'], id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    
+    else:  # DELETE
+        cursor.execute('DELETE FROM condiciones WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+
+# ========== API: ABONOS ==========
+@app.route('/api/abonos', methods=['POST'])
+def crear_abono():
+    data = request.get_json()
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO abonos 
+            (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['paciente_id'],
+            data['condicion_id'],
+            data['precio_total'],
+            data['abono_inicial'],
+            data['estado'],
+            data.get('notas', '')
+        ))
+        
+        abono_id = cursor.lastrowid
+        
+        # Si hay abono inicial, registrarlo como pago
+        if data['abono_inicial'] > 0:
+            cursor.execute('''
+                INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
+            ''', (abono_id, data['abono_inicial']))
+        
+        conn.commit()
+        return jsonify({'success': True, 'id': abono_id}), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    finally:
+        conn.close()
+
+@app.route('/api/abonos/paciente/<int:paciente_id>', methods=['GET'])
+def abonos_paciente(paciente_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT a.*, c.nombre as condicion_nombre
+        FROM abonos a
+        JOIN condiciones c ON a.condicion_id = c.id
+        WHERE a.paciente_id = ?
+        ORDER BY a.fecha_registro DESC
+    ''', (paciente_id,))
+    
+    abonos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(abonos)
+
+@app.route('/api/abonos/<int:abono_id>/pago', methods=['POST'])
+def agregar_pago(abono_id):
+    data = request.get_json()
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Registrar pago
+        cursor.execute('''
+            INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
+        ''', (abono_id, data['monto']))
+        
+        # Actualizar total abonado
+        cursor.execute('''
+            SELECT COALESCE(SUM(monto), 0) as total FROM pagos WHERE abono_id = ?
+        ''', (abono_id,))
+        total_abonado = cursor.fetchone()['total']
+        
+        # Obtener precio total
+        cursor.execute('SELECT precio_total FROM abonos WHERE id = ?', (abono_id,))
+        precio_total = cursor.fetchone()['precio_total']
+        
+        # Determinar estado
+        estado = 'pendiente'
+        if total_abonado >= precio_total:
+            estado = 'pagado'
+        elif total_abonado > 0:
+            estado = 'abonado'
+        
+        cursor.execute('''
+            UPDATE abonos SET total_abonado = ?, estado = ? WHERE id = ?
+        ''', (total_abonado, estado, abono_id))
+        
+        conn.commit()
+        return jsonify({'success': True, 'estado': estado})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    finally:
+        conn.close()
+
+@app.route('/api/abonos/resumen', methods=['GET'])
+def resumen_abonos():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Pacientes con deuda
+    cursor.execute('''
+        SELECT COUNT(DISTINCT paciente_id) as total FROM abonos WHERE estado != 'pagado'
+    ''')
+    pacientes_deuda = cursor.fetchone()['total']
+    
+    # Ingresos del mes
+    hoy = datetime.now()
+    primer_dia = hoy.replace(day=1).strftime('%Y-%m-%d')
+    cursor.execute('''
+        SELECT COALESCE(SUM(monto), 0) as total FROM pagos 
+        WHERE date(fecha_pago) >= ?
+    ''', (primer_dia,))
+    ingresos_mes = cursor.fetchone()['total']
+    
+    # Por cobrar
+    cursor.execute('''
+        SELECT COALESCE(SUM(precio_total - total_abonado), 0) as total FROM abonos WHERE estado != 'pagado'
+    ''')
+    por_cobrar = cursor.fetchone()['total']
+    
+    # Lista de abonos
+    cursor.execute('''
+        SELECT a.*, p.nombre_completo as paciente_nombre, c.nombre as condicion_nombre,
+               (a.precio_total - a.total_abonado) as saldo
+        FROM abonos a
+        JOIN pacientes p ON a.paciente_id = p.id
+        JOIN condiciones c ON a.condicion_id = c.id
+        ORDER BY a.fecha_registro DESC
+        LIMIT 50
+    ''')
+    abonos = [dict(row) for row in cursor.fetchall()]
+    
+    conn.close()
+    
+    return jsonify({
+        'pacientes_con_deuda': pacientes_deuda,
+        'ingresos_mes': ingresos_mes,
+        'por_cobrar': por_cobrar,
+        'abonos': abonos
+    })
+
 # ========== INICIALIZACIÓN ==========
 if __name__ == '__main__':
     init_db()
@@ -593,27 +816,3 @@ if __name__ == '__main__':
 else:
     # Para producción (gunicorn)
     init_db()
-
-
-@app.route('/api/pacientes/<int:paciente_id>', methods=['DELETE'])
-def eliminar_paciente(paciente_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    try:
-        # Primero eliminar registros relacionados (por si CASCADE no funciona)
-        cursor.execute("DELETE FROM historial_odontologico WHERE paciente_id = ?", (paciente_id,))
-        cursor.execute("DELETE FROM citas WHERE paciente_id = ?", (paciente_id,))
-        cursor.execute("DELETE FROM archivos WHERE paciente_id = ?", (paciente_id,))
-        
-        # Luego eliminar el paciente
-        cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
-        
-        conn.commit()
-        return jsonify({'success': True, 'message': 'Paciente eliminado correctamente'})
-        
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        conn.close()
