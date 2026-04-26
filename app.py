@@ -441,8 +441,8 @@ def citas_paciente(paciente_id):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT * FROM citas 
-        WHERE paciente_id = ? AND fecha >= date('now')
-        ORDER BY fecha, hora
+        WHERE paciente_id = ? 
+        ORDER BY fecha DESC, hora DESC
     """, (paciente_id,))
     citas = [dict(row) for row in cursor.fetchall()]
     conn.close()
