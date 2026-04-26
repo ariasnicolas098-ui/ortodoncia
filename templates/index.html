@@ -366,6 +366,97 @@
             .admin-btn { position: static; display: inline-block; margin-top: 15px; }
             .header { padding-top: 20px; }
         }
+        /* Estilos para citas en el buscador */
+.cita-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #667eea;
+    transition: all 0.3s;
+}
+
+.cita-item:hover {
+    background: #e3f2fd;
+    transform: translateX(5px);
+}
+
+.cita-fecha {
+    font-weight: 600;
+    color: #333;
+}
+
+.cita-hora {
+    font-size: 13px;
+    color: #666;
+}
+
+.cita-estado {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Estilos para abonos en el buscador */
+.abono-buscador {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.abono-buscador:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.abono-barra {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.abono-progreso {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* Resumen financiero */
+.resumen-financiero {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.resumen-item {
+    text-align: center;
+}
+
+.resumen-label {
+    font-size: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.resumen-valor {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 5px;
+}
     </style>
 </head>
 <body>
@@ -527,106 +618,226 @@
             lista.classList.add('active');
         }
 
-        async function verPaciente(id, nombre) {
-            document.getElementById('searchResults').classList.remove('active');
-            document.getElementById('searchInput').value = nombre;
-            
-            const resultados = document.getElementById('resultados');
-            resultados.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando información del paciente...</p></div>`;
+async function verPaciente(id, nombre) {
+    document.getElementById('searchResults').classList.remove('active');
+    document.getElementById('searchInput').value = nombre;
+    
+    const resultados = document.getElementById('resultados');
+    resultados.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando información del paciente...</p></div>`;
 
-            try {
-                // Obtener datos del paciente
-                const resPaciente = await fetch(`${API_URL}/api/pacientes/${id}`);
-                const paciente = await resPaciente.json();
-                
-                // Obtener archivos del paciente
-                const resArchivos = await fetch(`${API_URL}/api/archivos/${id}`);
-                const archivos = await resArchivos.json();
+    try {
+        // Obtener datos del paciente
+        const resPaciente = await fetch(`${API_URL}/api/pacientes/${id}`);
+        const paciente = await resPaciente.json();
+        
+        // Obtener archivos del paciente
+        const resArchivos = await fetch(`${API_URL}/api/archivos/${id}`);
+        const archivos = await resArchivos.json();
+        
+        // ========== NUEVO: Obtener citas del paciente ==========
+        const resCitas = await fetch(`${API_URL}/api/citas/paciente/${id}`);
+        const citas = await resCitas.json();
+        
+        // ========== NUEVO: Obtener abonos del paciente ==========
+        const resAbonos = await fetch(`${API_URL}/api/abonos/paciente/${id}`);
+        const abonos = await resAbonos.json();
 
-                mostrarDetallePaciente(paciente, archivos);
-            } catch (error) {
-                resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error al cargar los datos del paciente</div>`;
-            }
-        }
+        mostrarDetallePaciente(paciente, archivos, citas, abonos);
+    } catch (error) {
+        resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error al cargar los datos del paciente</div>`;
+    }
+}
 
-        function mostrarDetallePaciente(paciente, archivos) {
-            pacienteActual = paciente;
-            
-            const iconosArchivo = {
-                'radiografia': '🩻',
-                'foto': '📷',
-                'documento': '📄',
-                'pdf': '📑',
-                'otro': '📎'
-            };
+        function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
+    pacienteActual = paciente;
+    
+    const iconosArchivo = {
+        'radiografia': '🩻',
+        'foto': '📷',
+        'documento': '📄',
+        'pdf': '📑',
+        'otro': '📎'
+    };
 
-            let archivosHtml = '';
-            if (archivos.length === 0) {
-                archivosHtml = '<div class="no-files">Este paciente no tiene archivos adjuntos</div>';
-            } else {
-                archivosHtml = `
-                    <div class="files-grid">
-                        ${archivos.map(a => `
-                            <div class="file-item" onclick="verArchivo('${a.url || a.ruta}')">
-                                <div class="file-icon">${iconosArchivo[a.tipo] || '📎'}</div>
-                                <div class="file-name">${a.descripcion || a.nombre}</div>
+    // ========== ARCHIVOS ==========
+    let archivosHtml = '';
+    if (archivos.length === 0) {
+        archivosHtml = '<div class="no-files">Este paciente no tiene archivos adjuntos</div>';
+    } else {
+        archivosHtml = `
+            <div class="files-grid">
+                ${archivos.map(a => `
+                    <div class="file-item" onclick="verArchivo('${a.url || a.ruta}')">
+                        <div class="file-icon">${iconosArchivo[a.tipo] || '📎'}</div>
+                        <div class="file-name">${a.descripcion || a.nombre}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // ========== CITAS ==========
+    let citasHtml = '';
+    if (citas.length === 0) {
+        citasHtml = '<p style="color: #999; text-align: center; padding: 20px;">No tiene citas registradas</p>';
+    } else {
+        citasHtml = `
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                ${citas.map(c => {
+                    const fecha = new Date(c.fecha).toLocaleDateString('es-ES');
+                    const estadoColor = c.estado === 'programada' ? '#4CAF50' : c.estado === 'completada' ? '#2196F3' : '#f44336';
+                    const estadoIcono = c.estado === 'programada' ? '📅' : c.estado === 'completada' ? '✅' : '❌';
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${estadoColor};">
+                            <div>
+                                <div style="font-weight: 600; color: #333;">${estadoIcono} ${fecha} - ${c.hora}</div>
+                                <div style="font-size: 13px; color: #666;">${c.motivo || 'Consulta general'}</div>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            document.getElementById('resultados').innerHTML = `
-                <div class="patient-card">
-                    <div class="patient-header">
-                        <div class="patient-title">
-                            <h2>${paciente.nombre_completo}</h2>
-                            <div class="patient-id">ID: ${paciente.id} | Registrado: ${new Date(paciente.fecha_registro).toLocaleDateString('es-ES')}</div>
+                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; background: ${estadoColor}20; color: ${estadoColor}; text-transform: uppercase;">${c.estado}</span>
                         </div>
-                    </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    // ========== ABONOS ==========
+    let abonosHtml = '';
+    let totalDeuda = 0;
+    let totalAbonado = 0;
+    
+    if (abonos.length === 0) {
+        abonosHtml = '<p style="color: #999; text-align: center; padding: 20px;">No tiene abonos registrados</p>';
+    } else {
+        abonosHtml = `
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${abonos.map(a => {
+                    totalDeuda += parseFloat(a.precio_total);
+                    totalAbonado += parseFloat(a.total_abonado);
+                    const saldo = parseFloat(a.precio_total) - parseFloat(a.total_abonado);
+                    const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
+                    const estadoColor = a.estado === 'pagado' ? '#4CAF50' : a.estado === 'abonado' ? '#FF9800' : '#f44336';
                     
-                    <div class="patient-grid">
-                        <div class="info-item">
-                            <div class="info-label">DNI / Documento</div>
-                            <div class="info-value">${paciente.dni || 'No registrado'}</div>
+                    return `
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px solid ${estadoColor}30;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-weight: 600; color: #333; font-size: 1.05em;">${a.condicion_nombre}</div>
+                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${estadoColor}20; color: ${estadoColor}; font-weight: 600;">${a.estado.toUpperCase()}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Total</div>
+                                    <div style="font-weight: bold; color: #333;">$${parseFloat(a.precio_total).toFixed(2)}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Abonado</div>
+                                    <div style="font-weight: bold; color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Saldo</div>
+                                    <div style="font-weight: bold; color: ${saldo > 0 ? '#f44336' : '#4CAF50'};">$${saldo.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${porcentaje}%; height: 100%; background: ${estadoColor}; border-radius: 4px; transition: width 0.5s;"></div>
+                            </div>
+                            <div style="text-align: right; font-size: 11px; color: #666; margin-top: 4px;">${porcentaje.toFixed(0)}% pagado</div>
+                            ${a.notas ? `<div style="margin-top: 8px; font-size: 12px; color: #666; font-style: italic;">📝 ${a.notas}</div>` : ''}
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">Teléfono</div>
-                            <div class="info-value">${paciente.telefono || 'No registrado'}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Email</div>
-                            <div class="info-value">${paciente.email || 'No registrado'}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Fecha de Nacimiento</div>
-                            <div class="info-value">${paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No registrada'}</div>
-                        </div>
-                        <div class="info-item" style="grid-column: 1 / -1;">
-                            <div class="info-label">Dirección</div>
-                            <div class="info-value">${paciente.direccion || 'No registrada'}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Alergias</div>
-                            <div class="info-value">${paciente.alergias || 'Ninguna'}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Medicamentos Actuales</div>
-                            <div class="info-value">${paciente.medicamentos_actuales || 'Ninguno'}</div>
-                        </div>
-                        <div class="info-item" style="grid-column: 1 / -1;">
-                            <div class="info-label">Condiciones Médicas</div>
-                            <div class="info-value">${paciente.condiciones_medicas || 'Ninguna'}</div>
-                        </div>
-                    </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
 
-                    <div class="archivos-section">
-                        <div class="archivos-title">📎 Archivos y Documentos (${archivos.length})</div>
-                        ${archivosHtml}
-                    </div>
+    // ========== RESUMEN FINANCIERO ==========
+    const saldoPendiente = totalDeuda - totalAbonado;
+    const resumenFinanciero = abonos.length > 0 ? `
+        <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+            <h4 style="margin-bottom: 15px; font-size: 1.1em;">💰 Resumen Financiero</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                <div>
+                    <div style="font-size: 12px; opacity: 0.9;">Total Deuda</div>
+                    <div style="font-size: 1.4em; font-weight: bold;">$${totalDeuda.toFixed(2)}</div>
                 </div>
-            `;
-        }
+                <div>
+                    <div style="font-size: 12px; opacity: 0.9;">Total Abonado</div>
+                    <div style="font-size: 1.4em; font-weight: bold;">$${totalAbonado.toFixed(2)}</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; opacity: 0.9;">Saldo Pendiente</div>
+                    <div style="font-size: 1.4em; font-weight: bold; color: ${saldoPendiente > 0 ? '#FFD700' : '#90EE90'};">$${saldoPendiente.toFixed(2)}</div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+
+    // ========== HTML COMPLETO ==========
+    document.getElementById('resultados').innerHTML = `
+        <div class="patient-card">
+            <div class="patient-header">
+                <div class="patient-title">
+                    <h2>${paciente.nombre_completo}</h2>
+                    <div class="patient-id">ID: ${paciente.id} | Registrado: ${new Date(paciente.fecha_registro).toLocaleDateString('es-ES')}</div>
+                </div>
+            </div>
+            
+            <div class="patient-grid">
+                <div class="info-item">
+                    <div class="info-label">DNI / Documento</div>
+                    <div class="info-value">${paciente.dni || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teléfono</div>
+                    <div class="info-value">${paciente.telefono || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">${paciente.email || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Fecha de Nacimiento</div>
+                    <div class="info-value">${paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No registrada'}</div>
+                </div>
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="info-label">Dirección</div>
+                    <div class="info-value">${paciente.direccion || 'No registrada'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Alergias</div>
+                    <div class="info-value">${paciente.alergias || 'Ninguna'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Medicamentos Actuales</div>
+                    <div class="info-value">${paciente.medicamentos_actuales || 'Ninguno'}</div>
+                </div>
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="info-label">Condiciones Médicas</div>
+                    <div class="info-value">${paciente.condiciones_medicas || 'Ninguna'}</div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN DE CITAS -->
+            <div class="archivos-section">
+                <div class="archivos-title">📅 Citas (${citas.length})</div>
+                ${citasHtml}
+            </div>
+
+            <!-- SECCIÓN DE ABONOS -->
+            <div class="archivos-section">
+                <div class="archivos-title">💳 Abonos y Pagos (${abonos.length})</div>
+                ${abonosHtml}
+                ${resumenFinanciero}
+            </div>
+
+            <!-- SECCIÓN DE ARCHIVOS -->
+            <div class="archivos-section">
+                <div class="archivos-title">📎 Archivos y Documentos (${archivos.length})</div>
+                ${archivosHtml}
+            </div>
+        </div>
+    `;
+}
 
         function verArchivo(url) {
             window.open(url, '_blank');
