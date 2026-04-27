@@ -687,11 +687,12 @@ def crear_abono():
         
         abono_id = cursor.lastrowid
         
-        # Si hay abono inicial, registrarlo como pago
+        # Si hay abono inicial, registrarlo como pago con fecha
         if data['abono_inicial'] > 0:
+            fecha_pago = data.get('fecha_pago') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute('''
-                INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
-            ''', (abono_id, data['abono_inicial']))
+                INSERT INTO pagos (abono_id, monto, fecha_pago) VALUES (?, ?, ?)
+            ''', (abono_id, data['abono_inicial'], fecha_pago))
         
         conn.commit()
         return jsonify({'success': True, 'id': abono_id}), 201
@@ -715,6 +716,17 @@ def abonos_paciente(paciente_id):
     ''', (paciente_id,))
     
     abonos = [dict(row) for row in cursor.fetchall()]
+    
+    # Agregar historial de pagos individuales con fechas
+    for abono in abonos:
+        cursor.execute('''
+            SELECT id, monto, fecha_pago
+            FROM pagos
+            WHERE abono_id = ?
+            ORDER BY fecha_pago ASC
+        ''', (abono['id'],))
+        abono['pagos'] = [dict(p) for p in cursor.fetchall()]
+    
     conn.close()
     return jsonify(abonos)
 
@@ -725,10 +737,11 @@ def agregar_pago(abono_id):
     cursor = conn.cursor()
     
     try:
-        # Registrar pago
+        # Registrar pago con fecha
+        fecha_pago = data.get('fecha_pago') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute('''
-            INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
-        ''', (abono_id, data['monto']))
+            INSERT INTO pagos (abono_id, monto, fecha_pago) VALUES (?, ?, ?)
+        ''', (abono_id, data['monto'], fecha_pago))
         
         # Actualizar total abonado
         cursor.execute('''
