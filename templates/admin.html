@@ -733,15 +733,6 @@
             border-radius: 5px;
             transition: width 0.5s;
         }
-        .input-monto {
-            font-weight: 600;
-            color: #2e7d32;
-            letter-spacing: 0.5px;
-        }
-        .input-monto:focus {
-            border-color: #4CAF50 !important;
-            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15) !important;
-        }
     </style>
 </head>
 <body>
@@ -1143,6 +1134,10 @@
                     <input type="text" id="abonoInicial" placeholder="$ 0" class="input-monto" autocomplete="off">
                 </div>
                 <div class="form-group">
+                    <label>Fecha del Abono Inicial</label>
+                    <input type="date" id="fechaAbonoInicial">
+                </div>
+                <div class="form-group">
                     <label>Estado</label>
                     <select id="estadoAbono">
                         <option value="pendiente">⏳ Pendiente</option>
@@ -1192,6 +1187,10 @@
                                 <label>Monto a Abonar ($)</label>
                                 <input type="text" id="montoPagoExtra" placeholder="$ 0" class="input-monto" autocomplete="off">
                             </div>
+                            <div class="form-group">
+                                <label>Fecha del Pago *</label>
+                                <input type="date" id="fechaPagoExtra">
+                            </div>
                             <div class="form-group" style="display: flex; align-items: flex-end;">
                                 <button onclick="agregarPagoAdicional()" class="btn btn-success">💵 Registrar Pago</button>
                             </div>
@@ -1235,15 +1234,12 @@
 
         // ========== FORMATEO DE MONTOS ==========
         function formatearMiles(valor) {
-            // Quitar todo lo que no sea dígito
             let soloNumeros = valor.replace(/\D/g, '');
             if (!soloNumeros) return '';
-            // Agregar puntos cada 3 dígitos
             return soloNumeros.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
 
         function parsearMonto(str) {
-            // Quitar puntos y convertir a número para enviar al backend
             if (!str) return 0;
             return parseFloat(str.replace(/\./g, '')) || 0;
         }
@@ -1253,21 +1249,17 @@
             const valorAnterior = input.value;
             const formateado = formatearMiles(input.value);
             input.value = formateado;
-            // Ajustar cursor: contar cuántos puntos hay antes del cursor
             const puntosAntes = (valorAnterior.slice(0, posicion).match(/\./g) || []).length;
             const puntosNuevos = (formateado.slice(0, posicion).match(/\./g) || []).length;
             const nuevaPosicion = posicion + (puntosNuevos - puntosAntes);
             input.setSelectionRange(nuevaPosicion, nuevaPosicion);
         }
 
-        // Inicializar todos los inputs de monto al cargar
+        // Conectar formateo automático a todos los inputs de monto
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.input-monto').forEach(function(input) {
-                input.addEventListener('input', function() {
-                    aplicarFormatoMonto(this);
-                });
+                input.addEventListener('input', function() { aplicarFormatoMonto(this); });
                 input.addEventListener('keypress', function(e) {
-                    // Solo permitir dígitos
                     if (!/[0-9]/.test(e.key)) e.preventDefault();
                 });
                 input.addEventListener('paste', function(e) {
@@ -1283,6 +1275,10 @@
             cargarEstadisticas();
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('fecha_consulta').min = hoy;
+
+            // Fechas de pago: por defecto hoy
+            document.getElementById('fechaAbonoInicial').value = hoy;
+            document.getElementById('fechaPagoExtra').value = hoy;
             document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
             document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
             cargarPacientes();
@@ -1786,9 +1782,7 @@ function actualizarPrecioSugerido() {
     const select = document.getElementById('condicionAbono');
     const option = select.options[select.selectedIndex];
     if (option && option.dataset.precio) {
-        const campo = document.getElementById('precioTotalAbono');
-        campo.value = option.dataset.precio;
-        aplicarFormatoMonto(campo);
+        document.getElementById('precioTotalAbono').value = option.dataset.precio;
     }
 }
 
@@ -1919,6 +1913,7 @@ function seleccionarPacienteAbono(id, nombre) {
             condicion_id: condicionId,
             precio_total: parsearMonto(precioTotal),
             abono_inicial: parsearMonto(abonoInicial),
+            fecha_pago: document.getElementById('fechaAbonoInicial').value || null,
             estado: estado,
             notas: notas
         };
@@ -1997,7 +1992,17 @@ function seleccionarPacienteAbono(id, nombre) {
                             <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">${porcentaje.toFixed(0)}% pagado</div>
                         </div>
                         ${a.notas ? `<div style="margin-top: 10px; font-size: 13px; color: #666;"><strong>Notas:</strong> ${a.notas}</div>` : ''}
-                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Fecha: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Registrado: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
+                        ${a.pagos && a.pagos.length > 0 ? `
+                        <div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px;">📅 Historial de pagos:</div>
+                            ${a.pagos.map((p, i) => `
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 8px; background: ${i % 2 === 0 ? '#f9f9f9' : 'white'}; border-radius: 5px; margin-bottom: 3px;">
+                                    <span style="color: #4CAF50; font-weight: 600;">+ $${parseFloat(p.monto).toLocaleString('es-CO')}</span>
+                                    <span style="color: #888;">${new Date(p.fecha_pago).toLocaleDateString('es-ES')}</span>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -2032,8 +2037,13 @@ function seleccionarPacienteAbono(id, nombre) {
         }
         
         const monto = document.getElementById('montoPagoExtra').value;
+        const fechaPago = document.getElementById('fechaPagoExtra').value;
         if (!monto || parsearMonto(monto) <= 0) {
             showAlert('Ingrese un monto válido', 'error');
+            return;
+        }
+        if (!fechaPago) {
+            showAlert('Ingrese la fecha del pago', 'error');
             return;
         }
         
@@ -2041,12 +2051,13 @@ function seleccionarPacienteAbono(id, nombre) {
             const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({monto: parsearMonto(monto)})
+                body: JSON.stringify({monto: parsearMonto(monto), fecha_pago: fechaPago})
             });
             
             if (res.ok) {
                 showAlert('Pago registrado correctamente');
                 document.getElementById('montoPagoExtra').value = '';
+                document.getElementById('fechaPagoExtra').value = '';
                 cargarAbonosPaciente(pacienteAbonoActual);
                 cargarResumenAbonos();
             }
