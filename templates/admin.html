@@ -733,6 +733,15 @@
             border-radius: 5px;
             transition: width 0.5s;
         }
+        .input-monto {
+            font-weight: 600;
+            color: #2e7d32;
+            letter-spacing: 0.5px;
+        }
+        .input-monto:focus {
+            border-color: #4CAF50 !important;
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15) !important;
+        }
     </style>
 </head>
 <body>
@@ -1083,7 +1092,7 @@
             </div>
             <div class="form-group">
                 <label>Precio Base ($)</label>
-                <input type="number" id="precioCondicion" placeholder="0.00" min="0" step="0.01">
+                <input type="text" id="precioCondicion" placeholder="$ 0" class="input-monto" autocomplete="off">
             </div>
             <div class="form-group" style="display: flex; align-items: flex-end;">
                 <button onclick="agregarCondicion()" class="btn btn-success">➕ Agregar Condición</button>
@@ -1127,11 +1136,11 @@
                 </div>
                 <div class="form-group">
                     <label>Precio Total ($) *</label>
-                    <input type="number" id="precioTotalAbono" min="0" step="0.01" placeholder="0.00">
+                    <input type="text" id="precioTotalAbono" placeholder="$ 0" class="input-monto" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label>Abono Inicial ($)</label>
-                    <input type="number" id="abonoInicial" min="0" step="0.01" placeholder="0.00" value="0">
+                    <input type="text" id="abonoInicial" placeholder="$ 0" class="input-monto" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label>Estado</label>
@@ -1181,7 +1190,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Monto a Abonar ($)</label>
-                                <input type="number" id="montoPagoExtra" min="0" step="0.01" placeholder="0.00">
+                                <input type="text" id="montoPagoExtra" placeholder="$ 0" class="input-monto" autocomplete="off">
                             </div>
                             <div class="form-group" style="display: flex; align-items: flex-end;">
                                 <button onclick="agregarPagoAdicional()" class="btn btn-success">💵 Registrar Pago</button>
@@ -1223,6 +1232,52 @@
         let pacienteAbonoActual = null;
         let abonoSeleccionadoId = null;
         let condicionesPrecios = [];
+
+        // ========== FORMATEO DE MONTOS ==========
+        function formatearMiles(valor) {
+            // Quitar todo lo que no sea dígito
+            let soloNumeros = valor.replace(/\D/g, '');
+            if (!soloNumeros) return '';
+            // Agregar puntos cada 3 dígitos
+            return soloNumeros.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function parsearMonto(str) {
+            // Quitar puntos y convertir a número para enviar al backend
+            if (!str) return 0;
+            return parseFloat(str.replace(/\./g, '')) || 0;
+        }
+
+        function aplicarFormatoMonto(input) {
+            const posicion = input.selectionStart;
+            const valorAnterior = input.value;
+            const formateado = formatearMiles(input.value);
+            input.value = formateado;
+            // Ajustar cursor: contar cuántos puntos hay antes del cursor
+            const puntosAntes = (valorAnterior.slice(0, posicion).match(/\./g) || []).length;
+            const puntosNuevos = (formateado.slice(0, posicion).match(/\./g) || []).length;
+            const nuevaPosicion = posicion + (puntosNuevos - puntosAntes);
+            input.setSelectionRange(nuevaPosicion, nuevaPosicion);
+        }
+
+        // Inicializar todos los inputs de monto al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.input-monto').forEach(function(input) {
+                input.addEventListener('input', function() {
+                    aplicarFormatoMonto(this);
+                });
+                input.addEventListener('keypress', function(e) {
+                    // Solo permitir dígitos
+                    if (!/[0-9]/.test(e.key)) e.preventDefault();
+                });
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const texto = (e.clipboardData || window.clipboardData).getData('text');
+                    this.value = texto;
+                    aplicarFormatoMonto(this);
+                });
+            });
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
@@ -1731,7 +1786,9 @@ function actualizarPrecioSugerido() {
     const select = document.getElementById('condicionAbono');
     const option = select.options[select.selectedIndex];
     if (option && option.dataset.precio) {
-        document.getElementById('precioTotalAbono').value = option.dataset.precio;
+        const campo = document.getElementById('precioTotalAbono');
+        campo.value = option.dataset.precio;
+        aplicarFormatoMonto(campo);
     }
 }
 
@@ -1748,7 +1805,7 @@ async function agregarCondicion() {
         const res = await fetch(`${API_URL}/api/condiciones`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({nombre, precio: parseFloat(precio)})
+            body: JSON.stringify({nombre, precio: parsearMonto(precio)})
         });
         if (res.ok) {
             showAlert('Condición agregada correctamente');
@@ -1860,8 +1917,8 @@ function seleccionarPacienteAbono(id, nombre) {
         const data = {
             paciente_id: pacienteAbonoActual,
             condicion_id: condicionId,
-            precio_total: parseFloat(precioTotal),
-            abono_inicial: parseFloat(abonoInicial) || 0,
+            precio_total: parsearMonto(precioTotal),
+            abono_inicial: parsearMonto(abonoInicial),
             estado: estado,
             notas: notas
         };
@@ -1975,7 +2032,7 @@ function seleccionarPacienteAbono(id, nombre) {
         }
         
         const monto = document.getElementById('montoPagoExtra').value;
-        if (!monto || parseFloat(monto) <= 0) {
+        if (!monto || parsearMonto(monto) <= 0) {
             showAlert('Ingrese un monto válido', 'error');
             return;
         }
@@ -1984,7 +2041,7 @@ function seleccionarPacienteAbono(id, nombre) {
             const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({monto: parseFloat(monto)})
+                body: JSON.stringify({monto: parsearMonto(monto)})
             });
             
             if (res.ok) {
