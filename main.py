@@ -4,6 +4,7 @@ import os
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 
+
 # Importar la base de datos y el blueprint de WhatsApp
 from database import db
 from whatsapp_integration import whatsapp_bp
