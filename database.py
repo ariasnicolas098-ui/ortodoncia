@@ -21,21 +21,28 @@ class Database:
     def __init__(self, db_path='consultorio_dental.db'):
         self.db_path = db_path
         
-        # OBTENER DATABASE_URL (forzar si no está en variables)
-        self.database_url = os.environ.get('DATABASE_URL')
+        # DEBUG: Ver todas las variables de entorno
+        print("=" * 50)
+        print("DEBUG: Variables de entorno relacionadas:")
+        for key, value in os.environ.items():
+            if 'DATABASE' in key or 'RAILWAY' in key or 'URL' in key:
+                print(f"  {key} = {value[:60]}..." if len(str(value)) > 60 else f"  {key} = {value}")
+        print("=" * 50)
         
-        # Si no hay variable de entorno, usar URL directa de Railway
-        # (Copia la URL exacta de tu servicio Postgres → Variables → DATABASE_URL)
+        # OBTENER DATABASE_URL
+        self.database_url = os.environ.get('DATABASE_URL')
+        print(f"DEBUG: DATABASE_URL desde os.environ = {self.database_url}")
+        
+        # Fallback hardcodeado (copia tu URL exacta de Postgres)
         if not self.database_url:
-            self.database_url = "postgresql://postgres:mmdwFHasTXHqvUovDABIyPqfTWuDULmp@postgres.railway.internal:5432/railway"
+            self.database_url = "postgresql://postgres:mmdwFHasTXHqvUovDABIyPqfTwUDULmp@postgres.railway.internal:5432/railway"
+            print(f"DEBUG: Usando URL hardcodeada")
+        
+        print(f"DEBUG: URL final = {self.database_url[:50]}...")
+        print(f"DEBUG: POSTGRES_AVAILABLE = {POSTGRES_AVAILABLE}")
         
         self.is_postgres = self.database_url is not None and POSTGRES_AVAILABLE
-        
-        # DEBUG
-        print(f"DEBUG: DATABASE_URL presente = {bool(os.environ.get('DATABASE_URL'))}")
-        print(f"DEBUG: POSTGRES_AVAILABLE = {POSTGRES_AVAILABLE}")
         print(f"DEBUG: is_postgres = {self.is_postgres}")
-        print(f"DEBUG: URL usada = {self.database_url[:50]}...")
         
         if self.is_postgres:
             print("🐘 Usando PostgreSQL (Railway)")
