@@ -739,8 +739,8 @@
     <nav class="navbar">
         <h1>🦷 Panel de Administración</h1>
         <div class="nav-links">
-            <a href="https://ortodoncia.onrender.com">🔍 Buscador</a>
-            <a href="https://ortodoncia.onrender.com/admin" class="active">⚙️ Administración</a>
+        <a href="https://ortodoncia-production.up.railway.app">🔍 Buscador</a>
+        <a href="https://ortodoncia-production.up.railway.app/admin" class="active">⚙️ Administración</a>
         </div>
     </nav>
 
@@ -1083,7 +1083,7 @@
             </div>
             <div class="form-group">
                 <label>Precio Base ($)</label>
-                <input type="text" id="precioCondicion" placeholder="$ 0" class="input-monto" autocomplete="off">
+                <input type="number" id="precioCondicion" placeholder="0.00" min="0" step="0.01">
             </div>
             <div class="form-group" style="display: flex; align-items: flex-end;">
                 <button onclick="agregarCondicion()" class="btn btn-success">➕ Agregar Condición</button>
@@ -1127,15 +1127,11 @@
                 </div>
                 <div class="form-group">
                     <label>Precio Total ($) *</label>
-                    <input type="text" id="precioTotalAbono" placeholder="$ 0" class="input-monto" autocomplete="off">
+                    <input type="number" id="precioTotalAbono" min="0" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label>Abono Inicial ($)</label>
-                    <input type="text" id="abonoInicial" placeholder="$ 0" class="input-monto" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label>Fecha del Abono Inicial</label>
-                    <input type="date" id="fechaAbonoInicial">
+                    <input type="number" id="abonoInicial" min="0" step="0.01" placeholder="0.00" value="0">
                 </div>
                 <div class="form-group">
                     <label>Estado</label>
@@ -1185,11 +1181,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Monto a Abonar ($)</label>
-                                <input type="text" id="montoPagoExtra" placeholder="$ 0" class="input-monto" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label>Fecha del Pago *</label>
-                                <input type="date" id="fechaPagoExtra">
+                                <input type="number" id="montoPagoExtra" min="0" step="0.01" placeholder="0.00">
                             </div>
                             <div class="form-group" style="display: flex; align-items: flex-end;">
                                 <button onclick="agregarPagoAdicional()" class="btn btn-success">💵 Registrar Pago</button>
@@ -1222,7 +1214,7 @@
     </div>
 
     <script>
-        const API_URL = "https://ortodoncia.onrender.com";
+        const API_URL = "https://ortodoncia-production.up.railway.app";
         let pacientesCache = [];
         let pacienteSeleccionado = null;
         let citaSeleccionada = null;
@@ -1232,53 +1224,10 @@
         let abonoSeleccionadoId = null;
         let condicionesPrecios = [];
 
-        // ========== FORMATEO DE MONTOS ==========
-        function formatearMiles(valor) {
-            let soloNumeros = valor.replace(/\D/g, '');
-            if (!soloNumeros) return '';
-            return soloNumeros.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        }
-
-        function parsearMonto(str) {
-            if (!str) return 0;
-            return parseFloat(str.replace(/\./g, '')) || 0;
-        }
-
-        function aplicarFormatoMonto(input) {
-            const posicion = input.selectionStart;
-            const valorAnterior = input.value;
-            const formateado = formatearMiles(input.value);
-            input.value = formateado;
-            const puntosAntes = (valorAnterior.slice(0, posicion).match(/\./g) || []).length;
-            const puntosNuevos = (formateado.slice(0, posicion).match(/\./g) || []).length;
-            const nuevaPosicion = posicion + (puntosNuevos - puntosAntes);
-            input.setSelectionRange(nuevaPosicion, nuevaPosicion);
-        }
-
-        // Conectar formateo automático a todos los inputs de monto
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.input-monto').forEach(function(input) {
-                input.addEventListener('input', function() { aplicarFormatoMonto(this); });
-                input.addEventListener('keypress', function(e) {
-                    if (!/[0-9]/.test(e.key)) e.preventDefault();
-                });
-                input.addEventListener('paste', function(e) {
-                    e.preventDefault();
-                    const texto = (e.clipboardData || window.clipboardData).getData('text');
-                    this.value = texto;
-                    aplicarFormatoMonto(this);
-                });
-            });
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('fecha_consulta').min = hoy;
-
-            // Fechas de pago: por defecto hoy
-            document.getElementById('fechaAbonoInicial').value = hoy;
-            document.getElementById('fechaPagoExtra').value = hoy;
             document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
             document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
             cargarPacientes();
@@ -1491,7 +1440,7 @@
 
     function verHistorial(id, nombre) { 
     const nombreCodificado = encodeURIComponent(nombre);
-    window.location.href = `https://ortodoncia.onrender.com/?paciente_id=${id}&nombre=${nombreCodificado}`; }
+    window.location.href = `https://ortodoncia-production.up.railway.app/?paciente_id=${id}&nombre=${nombreCodificado}`; }
 
         async function eliminarPaciente(id) {
             if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer y eliminará también todos sus archivos asociados.')) return;
@@ -1799,7 +1748,7 @@ async function agregarCondicion() {
         const res = await fetch(`${API_URL}/api/condiciones`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({nombre, precio: parsearMonto(precio)})
+            body: JSON.stringify({nombre, precio: parseFloat(precio)})
         });
         if (res.ok) {
             showAlert('Condición agregada correctamente');
@@ -1911,9 +1860,8 @@ function seleccionarPacienteAbono(id, nombre) {
         const data = {
             paciente_id: pacienteAbonoActual,
             condicion_id: condicionId,
-            precio_total: parsearMonto(precioTotal),
-            abono_inicial: parsearMonto(abonoInicial),
-            fecha_pago: document.getElementById('fechaAbonoInicial').value || null,
+            precio_total: parseFloat(precioTotal),
+            abono_inicial: parseFloat(abonoInicial) || 0,
             estado: estado,
             notas: notas
         };
@@ -1992,17 +1940,7 @@ function seleccionarPacienteAbono(id, nombre) {
                             <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">${porcentaje.toFixed(0)}% pagado</div>
                         </div>
                         ${a.notas ? `<div style="margin-top: 10px; font-size: 13px; color: #666;"><strong>Notas:</strong> ${a.notas}</div>` : ''}
-                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Registrado: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
-                        ${a.pagos && a.pagos.length > 0 ? `
-                        <div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px;">
-                            <div style="font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px;">📅 Historial de pagos:</div>
-                            ${a.pagos.map((p, i) => `
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 8px; background: ${i % 2 === 0 ? '#f9f9f9' : 'white'}; border-radius: 5px; margin-bottom: 3px;">
-                                    <span style="color: #4CAF50; font-weight: 600;">+ $${parseFloat(p.monto).toLocaleString('es-CO')}</span>
-                                    <span style="color: #888;">${new Date(p.fecha_pago).toLocaleDateString('es-ES')}</span>
-                                </div>
-                            `).join('')}
-                        </div>` : ''}
+                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Fecha: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
                     </div>
                 `;
             }).join('');
@@ -2037,13 +1975,8 @@ function seleccionarPacienteAbono(id, nombre) {
         }
         
         const monto = document.getElementById('montoPagoExtra').value;
-        const fechaPago = document.getElementById('fechaPagoExtra').value;
-        if (!monto || parsearMonto(monto) <= 0) {
+        if (!monto || parseFloat(monto) <= 0) {
             showAlert('Ingrese un monto válido', 'error');
-            return;
-        }
-        if (!fechaPago) {
-            showAlert('Ingrese la fecha del pago', 'error');
             return;
         }
         
@@ -2051,13 +1984,12 @@ function seleccionarPacienteAbono(id, nombre) {
             const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({monto: parsearMonto(monto), fecha_pago: fechaPago})
+                body: JSON.stringify({monto: parseFloat(monto)})
             });
             
             if (res.ok) {
                 showAlert('Pago registrado correctamente');
                 document.getElementById('montoPagoExtra').value = '';
-                document.getElementById('fechaPagoExtra').value = '';
                 cargarAbonosPaciente(pacienteAbonoActual);
                 cargarResumenAbonos();
             }
