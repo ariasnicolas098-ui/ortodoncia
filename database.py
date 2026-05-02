@@ -20,14 +20,22 @@ import json
 class Database:
     def __init__(self, db_path='consultorio_dental.db'):
         self.db_path = db_path
-        # Detectar si estamos en Railway (tiene DATABASE_URL)
+        
+        # OBTENER DATABASE_URL (forzar si no está en variables)
         self.database_url = os.environ.get('DATABASE_URL')
+        
+        # Si no hay variable de entorno, usar URL directa de Railway
+        # (Copia la URL exacta de tu servicio Postgres → Variables → DATABASE_URL)
+        if not self.database_url:
+            self.database_url = "postgresql://postgres:mmdwFHasTXHqvUovDABIyPqfTWuDULmp@postgres.railway.internal:5432/railway"
+        
         self.is_postgres = self.database_url is not None and POSTGRES_AVAILABLE
         
-        # DEBUG: Imprimir qué está pasando
-        print(f"DEBUG: DATABASE_URL = {self.database_url}")
+        # DEBUG
+        print(f"DEBUG: DATABASE_URL presente = {bool(os.environ.get('DATABASE_URL'))}")
         print(f"DEBUG: POSTGRES_AVAILABLE = {POSTGRES_AVAILABLE}")
         print(f"DEBUG: is_postgres = {self.is_postgres}")
+        print(f"DEBUG: URL usada = {self.database_url[:50]}...")
         
         if self.is_postgres:
             print("🐘 Usando PostgreSQL (Railway)")
@@ -36,11 +44,9 @@ class Database:
     
     def get_connection(self):
         if self.is_postgres:
-            # Conectar a PostgreSQL
             conn = psycopg2.connect(self.database_url)
             return conn
         else:
-            # SQLite local
             conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys = ON")
