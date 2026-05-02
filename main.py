@@ -4,13 +4,22 @@ import os
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 
-
 # Importar la base de datos y el blueprint de WhatsApp
 from database import db
 from whatsapp_integration import whatsapp_bp
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+
+# Configurar carpeta de uploads (volumen persistente en Railway o local)
+import os
+if os.path.exists('/app/uploads'):
+    app.config['UPLOAD_FOLDER'] = '/app/uploads'
+    print("📁 Usando volumen persistente para archivos")
+else:
+    app.config['UPLOAD_FOLDER'] = 'uploads'
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    print("📁 Usando carpeta local para archivos")
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Registrar blueprint de WhatsApp
