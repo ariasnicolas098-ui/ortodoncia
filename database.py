@@ -24,6 +24,11 @@ class Database:
         self.database_url = os.environ.get('DATABASE_URL')
         self.is_postgres = self.database_url is not None and POSTGRES_AVAILABLE
         
+        # DEBUG: Imprimir qué está pasando
+        print(f"DEBUG: DATABASE_URL = {self.database_url}")
+        print(f"DEBUG: POSTGRES_AVAILABLE = {POSTGRES_AVAILABLE}")
+        print(f"DEBUG: is_postgres = {self.is_postgres}")
+        
         if self.is_postgres:
             print("🐘 Usando PostgreSQL (Railway)")
         else:
