@@ -47,10 +47,12 @@ def init_db():
     conn = db.get_connection()
     cursor = conn.cursor()
     
+    # ========== TABLAS PRINCIPALES ==========
+    
     # Tabla pacientes
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pacientes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             nombre_completo TEXT NOT NULL,
             dni TEXT UNIQUE,
             fecha_nacimiento DATE,
@@ -60,15 +62,15 @@ def init_db():
             alergias TEXT DEFAULT 'Ninguna',
             medicamentos_actuales TEXT DEFAULT 'Ninguno',
             condiciones_medicas TEXT DEFAULT 'Ninguna',
-            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
     # Tabla historial odontológico
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS historial_odontologico (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            paciente_id INTEGER,
+            id SERIAL PRIMARY KEY,
+            paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
             fecha_consulta DATE,
             hora_consulta TIME,
             motivo_consulta TEXT,
@@ -77,23 +79,21 @@ def init_db():
             dientes_tratados TEXT,
             procedimiento TEXT,
             observaciones TEXT,
-            odontologo TEXT,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+            odontologo TEXT
         )
     ''')
     
     # Tabla citas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS citas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            paciente_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            paciente_id INTEGER NOT NULL REFERENCES pacientes(id) ON DELETE CASCADE,
             fecha DATE NOT NULL,
             hora TIME NOT NULL,
             motivo TEXT,
             estado TEXT DEFAULT 'programada',
             notas TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(fecha, hora)
         )
     ''')
@@ -101,73 +101,68 @@ def init_db():
     # Tabla archivos
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS archivos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            paciente_id INTEGER,
+            id SERIAL PRIMARY KEY,
+            paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
             nombre TEXT NOT NULL,
             tipo TEXT,
             descripcion TEXT,
             ruta TEXT NOT NULL,
-            fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+            fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
     # Tablas de WhatsApp
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS whatsapp_mensajes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             numero TEXT NOT NULL,
             mensaje TEXT,
             tipo TEXT DEFAULT 'recibido',
-            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             procesado INTEGER DEFAULT 0
         )
     ''')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS whatsapp_sesiones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             numero TEXT UNIQUE,
-            paciente_id INTEGER,
+            paciente_id INTEGER REFERENCES pacientes(id),
             estado TEXT DEFAULT 'nuevo',
-            ultimo_mensaje DATETIME,
-            datos_conversacion TEXT,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS condiciones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL UNIQUE,
-            precio REAL NOT NULL,
-            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+            ultimo_mensaje TIMESTAMP,
+            datos_conversacion TEXT
         )
     ''')
     
-    # Tabla abonos
+    # ========== TABLAS DE ABONOS (NUEVAS) ==========
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS condiciones (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL UNIQUE,
+            precio REAL NOT NULL,
+            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS abonos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            paciente_id INTEGER NOT NULL,
-            condicion_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            paciente_id INTEGER NOT NULL REFERENCES pacientes(id) ON DELETE CASCADE,
+            condicion_id INTEGER NOT NULL REFERENCES condiciones(id),
             precio_total REAL NOT NULL,
             total_abonado REAL DEFAULT 0,
             estado TEXT DEFAULT 'pendiente',
             notas TEXT,
-            fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
-            FOREIGN KEY (condicion_id) REFERENCES condiciones(id)
+            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
-    # Tabla pagos (historial de pagos por abono)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pagos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            abono_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            abono_id INTEGER NOT NULL REFERENCES abonos(id) ON DELETE CASCADE,
             monto REAL NOT NULL,
-            fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (abono_id) REFERENCES abonos(id)
+            fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
