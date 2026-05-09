@@ -20,34 +20,22 @@ import json
 class Database:
     def __init__(self, db_path='consultorio_dental.db'):
         self.db_path = db_path
-        
-        # DEBUG: Ver todas las variables de entorno
-        print("=" * 50)
-        print("DEBUG: Variables de entorno relacionadas:")
-        for key, value in os.environ.items():
-            if 'DATABASE' in key or 'RAILWAY' in key or 'URL' in key:
-                print(f"  {key} = {value[:60]}..." if len(str(value)) > 60 else f"  {key} = {value}")
-        print("=" * 50)
-        
-        # OBTENER DATABASE_URL
+        # Detectar si estamos en Railway (tiene DATABASE_URL)
         self.database_url = os.environ.get('DATABASE_URL')
-        print(f"DEBUG: DATABASE_URL desde os.environ = {self.database_url}")
         
-        # Fallback hardcodeado (copia tu URL exacta de Postgres)
-        if not self.database_url:
-            self.database_url = "postgresql://postgres:mmdwFHasTXHqvUovDABIyPqfTwUDULmp@postgres.railway.internal:5432/railway"
-            print(f"DEBUG: Usando URL hardcodeada")
-        
-        print(f"DEBUG: URL final = {self.database_url[:50]}...")
-        print(f"DEBUG: POSTGRES_AVAILABLE = {POSTGRES_AVAILABLE}")
+        # Railway a veces usa postgres:// en lugar de postgresql://
+        if self.database_url and self.database_url.startswith('postgres://'):
+            self.database_url = self.database_url.replace('postgres://', 'postgresql://', 1)
         
         self.is_postgres = self.database_url is not None and POSTGRES_AVAILABLE
-        print(f"DEBUG: is_postgres = {self.is_postgres}")
         
         if self.is_postgres:
             print("🐘 Usando PostgreSQL (Railway)")
+            print(f"📝 URL: {self.database_url[:20]}...")  # Log parcial por seguridad
         else:
             print("🗄️ Usando SQLite (local)")
+            if not POSTGRES_AVAILABLE and os.environ.get('DATABASE_URL'):
+                print("⚠️ DATABASE_URL existe pero psycopg2 no está instalado")
     
     def get_connection(self):
         if self.is_postgres:
