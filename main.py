@@ -10,17 +10,20 @@ from whatsapp_integration import whatsapp_bp
 
 app = Flask(__name__)
 
-# Configurar carpeta de uploads (volumen persistente en Railway o local)
 import os
-if os.path.exists('/app/uploads'):
-    app.config['UPLOAD_FOLDER'] = '/app/uploads'
-    print("📁 Usando volumen persistente para archivos")
-else:
-    app.config['UPLOAD_FOLDER'] = 'uploads'
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    print("📁 Usando carpeta local para archivos")
 
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+# Configurar carpeta de uploads (volumen persistente en Railway o local)
+UPLOAD_FOLDER = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/app/uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    UPLOAD_FOLDER = 'uploads'
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+
+# Asegurar que exista la carpeta
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+print(f"📁 Carpeta uploads: {app.config['UPLOAD_FOLDER']}")
 
 # Registrar blueprint de WhatsApp
 app.register_blueprint(whatsapp_bp)
