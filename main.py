@@ -822,10 +822,11 @@ def resumen_abonos():
 # ========== INICIALIZACIÓN ==========
 if __name__ == '__main__':
     init_db()
-    print("🚀 Servidor iniciado en http://localhost:5000")
-    print("📁 Panel Admin: http://localhost:5000/admin")
-    print("💬 Webhook WhatsApp: http://localhost:5000/api/whatsapp/webhook")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🚀 Servidor iniciado en puerto {port}")
+    print(f"📁 Panel Admin: /admin")
+    print(f"💬 Webhook WhatsApp: /api/whatsapp/webhook")
+    app.run(debug=False, host='0.0.0.0', port=port)
 else:
     # Para producción (gunicorn)
     init_db()
