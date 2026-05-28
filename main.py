@@ -40,19 +40,23 @@ def get_db():
     return db.get_connection()
 
 # ========== HELPER PARA QUERIES ==========
-def execute_query(cursor, query, params=None):
+def execute_query(cursor, query, params=None, returning=False):
     """
     Ejecuta una query adaptando automáticamente los placeholders
     de SQLite (?) a PostgreSQL (%s)
     """
     if db.is_postgres:
-        # Convertir ? a %s para PostgreSQL
         query = query.replace('?', '%s')
+        # Si es INSERT y necesitamos el ID de vuelta, agregar RETURNING
+        if returning and 'INSERT INTO' in query and 'RETURNING' not in query.upper():
+            query = query.rstrip(';') + ' RETURNING id;'
     
     if params:
         cursor.execute(query, params)
     else:
         cursor.execute(query)
+    
+    return cursor
 
 # ========== INICIALIZAR DB ==========
 def init_db():
@@ -278,10 +282,30 @@ def manejar_pacientes():
     conn = get_db()
     cursor = db.get_cursor(conn)
     
-    if request.method == 'POST':
-        data = request.get_json()
-        
-        try:
+   if request.method == 'POST':
+    data = request.get_json()
+    
+    try:
+        if db.is_postgres:
+            execute_query(cursor, """
+                INSERT INTO pacientes 
+                (nombre_completo, dni, fecha_nacimiento, telefono, email, 
+                 direccion, alergias, medicamentos_actuales, condiciones_medicas)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+            """, (
+                data['nombre_completo'],
+                data.get('dni'),
+                data.get('fecha_nacimiento'),
+                data.get('telefono'),
+                data.get('email'),
+                data.get('direccion'),
+                data.get('alergias', 'Ninguna'),
+                data.get('medicamentos_actuales', 'Ninguno'),
+                data.get('condiciones_medicas', 'Ninguna')
+            ), returning=True)
+            last_id = cursor.fetchone()[0]
+        else:
             execute_query(cursor, """
                 INSERT INTO pacientes 
                 (nombre_completo, dni, fecha_nacimiento, telefono, email, 
@@ -298,20 +322,15 @@ def manejar_pacientes():
                 data.get('medicamentos_actuales', 'Ninguno'),
                 data.get('condiciones_medicas', 'Ninguna')
             ))
-            conn.commit()
-            last_id = cursor.lastrowid if not db.is_postgres else cursor.fetchone()[0] if cursor.description else None
-            # Para PostgreSQL necesitamos RETURNING o usar cursor.fetchone
-            if db.is_postgres:
-                execute_query(cursor, "SELECT lastval()")
-                last_id = cursor.fetchone()[0]
-            
-            conn.close()
-            return jsonify({'success': True, 'id': last_id}), 201
-            
-        except Exception as e:
-            conn.close()
-            return jsonify({'error': str(e)}), 400
-    
+            last_id = cursor.lastrowid
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'id': last_id}), 201
+        
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 400    
     else:  # GET
         filtro = request.args.get('filtro', '')
         
@@ -704,7 +723,6 @@ def modificar_condicion(id):
 def crear_abono():
     data = request.get_json()
     
-    # Validar que lleguen los datos necesarios
     if not data:
         return jsonify({'error': 'No se recibieron datos'}), 400
     
@@ -714,10 +732,10 @@ def crear_abono():
             return jsonify({'error': f'Falta el campo {field}'}), 400
 
     conn = get_db()
-    cursor = db.get_cursor(conn)  # USAR db.get_cursor
+    cursor = db.get_cursor(conn)
     
     try:
-        # Obtener info de la condición para validación
+        # Verificar que la condición existe
         execute_query(cursor, "SELECT precio FROM condiciones WHERE id = ?", (data['condicion_id'],))
         condicion = cursor.fetchone()
         
@@ -725,40 +743,63 @@ def crear_abono():
             conn.close()
             return jsonify({'error': 'La condición seleccionada no existe'}), 400
 
-        # Insertar abono
-        execute_query(cursor, '''
-            INSERT INTO abonos 
-            (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            data['paciente_id'],
-            data['condicion_id'],
-            data['precio_total'],
-            data.get('abono_inicial', 0),
-            data.get('estado', 'pendiente'),
-            data.get('notas', '')
-        ))
+        abono_inicial = float(data.get('abono_inicial', 0))
+        precio_total = float(data['precio_total'])
         
-        # Obtener el ID insertado
+        # Determinar estado inicial
+        estado = 'pendiente'
+        if abono_inicial >= precio_total:
+            estado = 'pagado'
+        elif abono_inicial > 0:
+            estado = 'abonado'
+
+        # Insertar abono con RETURNING para PostgreSQL
         if db.is_postgres:
-            execute_query(cursor, "SELECT lastval()")
+            execute_query(cursor, '''
+                INSERT INTO abonos 
+                (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
+                VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING id
+            ''', (
+                data['paciente_id'],
+                data['condicion_id'],
+                precio_total,
+                abono_inicial,
+                estado,
+                data.get('notas', '')
+            ), returning=True)
             abono_id = cursor.fetchone()[0]
         else:
+            execute_query(cursor, '''
+                INSERT INTO abonos 
+                (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                data['paciente_id'],
+                data['condicion_id'],
+                precio_total,
+                abono_inicial,
+                estado,
+                data.get('notas', '')
+            ))
             abono_id = cursor.lastrowid
         
         # Registrar el pago inicial si existe
-        if data.get('abono_inicial', 0) > 0:
+        if abono_inicial > 0:
             execute_query(cursor, '''
                 INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
-            ''', (abono_id, data['abono_inicial']))
+            ''', (abono_id, abono_inicial))
         
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'id': abono_id}), 201
+        return jsonify({'success': True, 'id': abono_id, 'estado': estado}), 201
         
     except Exception as e:
+        conn.rollback()  # Importante: rollback en caso de error
         conn.close()
-        print(f"Error en crear_abono: {e}")
+        print(f"❌ Error en crear_abono: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/abonos/paciente/<int:paciente_id>', methods=['GET'])
@@ -823,50 +864,74 @@ def resumen_abonos():
     conn = get_db()
     cursor = db.get_cursor(conn)
     
-    execute_query(cursor, '''
-        SELECT COUNT(DISTINCT paciente_id) as total FROM abonos WHERE estado != 'pagado'
-    ''')
-    pacientes_deuda = cursor.fetchone()
-    pacientes_deuda = pacientes_deuda['total'] if isinstance(pacientes_deuda, dict) else pacientes_deuda[0]
-    
-    hoy = datetime.now()
-    primer_dia = hoy.replace(day=1).strftime('%Y-%m-%d')
-    
-    execute_query(cursor, '''
-        SELECT COALESCE(SUM(monto), 0) as total FROM pagos 
-        WHERE date(fecha_pago) >= ?
-    ''', (primer_dia,))
-    
-    ingresos_mes = cursor.fetchone()
-    ingresos_mes = ingresos_mes['total'] if isinstance(ingresos_mes, dict) else ingresos_mes[0]
-    
-    execute_query(cursor, '''
-        SELECT COALESCE(SUM(precio_total - total_abonado), 0) as total FROM abonos WHERE estado != 'pagado'
-    ''')
-    
-    por_cobrar = cursor.fetchone()
-    por_cobrar = por_cobrar['total'] if isinstance(por_cobrar, dict) else por_cobrar[0]
-    
-    execute_query(cursor, '''
-        SELECT a.*, p.nombre_completo as paciente_nombre, c.nombre as condicion_nombre,
-               (a.precio_total - a.total_abonado) as saldo
-        FROM abonos a
-        JOIN pacientes p ON a.paciente_id = p.id
-        JOIN condiciones c ON a.condicion_id = c.id
-        ORDER BY a.fecha_registro DESC
-        LIMIT 50
-    ''')
-    
-    abonos = [dict(row) for row in cursor.fetchall()]
-    
-    conn.close()
-    
-    return jsonify({
-        'pacientes_con_deuda': pacientes_deuda,
-        'ingresos_mes': float(ingresos_mes),
-        'por_cobrar': float(por_cobrar),  # AQUI ESTABA EL ERROR
-        'abonos': abonos
-    })
+    try:
+        # Pacientes con deuda
+        execute_query(cursor, '''
+            SELECT COUNT(DISTINCT paciente_id) as total FROM abonos WHERE estado != 'pagado'
+        ''')
+        row = cursor.fetchone()
+        pacientes_deuda = int(row['total'] if isinstance(row, dict) else row[0] or 0)
+        
+        # Ingresos del mes
+        hoy = datetime.now()
+        primer_dia = hoy.replace(day=1).strftime('%Y-%m-%d')
+        
+        if db.is_postgres:
+            execute_query(cursor, '''
+                SELECT COALESCE(SUM(monto), 0) as total FROM pagos 
+                WHERE fecha_pago >= ?
+            ''', (primer_dia,))
+        else:
+            execute_query(cursor, '''
+                SELECT COALESCE(SUM(monto), 0) as total FROM pagos 
+                WHERE date(fecha_pago) >= ?
+            ''', (primer_dia,))
+        
+        row = cursor.fetchone()
+        ingresos_mes = float(row['total'] if isinstance(row, dict) else row[0] or 0)
+        
+        # Por cobrar
+        execute_query(cursor, '''
+            SELECT COALESCE(SUM(precio_total - total_abonado), 0) as total 
+            FROM abonos WHERE estado != 'pagado'
+        ''')
+        row = cursor.fetchone()
+        por_cobrar = float(row['total'] if isinstance(row, dict) else row[0] or 0)
+        
+        # Lista de abonos
+        execute_query(cursor, '''
+            SELECT a.*, p.nombre_completo as paciente_nombre, c.nombre as condicion_nombre,
+                   (a.precio_total - a.total_abonado) as saldo
+            FROM abonos a
+            JOIN pacientes p ON a.paciente_id = p.id
+            JOIN condiciones c ON a.condicion_id = c.id
+            ORDER BY a.fecha_registro DESC
+            LIMIT 50
+        ''')
+        
+        abonos = [dict(row) for row in cursor.fetchall()]
+        
+        # Convertir saldos a float para JSON
+        for a in abonos:
+            a['saldo'] = float(a['saldo'] or 0)
+            a['precio_total'] = float(a['precio_total'] or 0)
+            a['total_abonado'] = float(a['total_abonado'] or 0)
+        
+        conn.close()
+        
+        return jsonify({
+            'pacientes_con_deuda': pacientes_deuda,
+            'ingresos_mes': ingresos_mes,
+            'por_cobrar': por_cobrar,
+            'abonos': abonos
+        })
+        
+    except Exception as e:
+        conn.close()
+        print(f"❌ Error en resumen_abonos: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 # ========== INICIALIZACIÓN ==========
 if __name__ == '__main__':
     init_db()
