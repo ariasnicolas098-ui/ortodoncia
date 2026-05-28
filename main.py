@@ -58,7 +58,7 @@ def execute_query(cursor, query, params=None):
 def init_db():
     """Inicializar todas las tablas con sintaxis compatible"""
     conn = db.get_connection()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     # Tipo de PRIMARY KEY según la base de datos
     if db.is_postgres:
@@ -211,7 +211,7 @@ def buscar_paciente():
         return jsonify([])
     
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, """
         SELECT * FROM pacientes 
@@ -276,7 +276,7 @@ def buscar_paciente():
 @app.route('/api/pacientes', methods=['GET', 'POST'])
 def manejar_pacientes():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     if request.method == 'POST':
         data = request.get_json()
@@ -345,7 +345,7 @@ def manejar_pacientes():
 @app.route('/api/pacientes/<int:paciente_id>', methods=['GET'])
 def obtener_paciente(paciente_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, "SELECT * FROM pacientes WHERE id = ?", (paciente_id,))
     
@@ -362,7 +362,7 @@ def obtener_paciente(paciente_id):
 def crear_consulta():
     data = request.get_json()
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     try:
         execute_query(cursor, """
@@ -399,7 +399,7 @@ def horarios_disponibles():
         return jsonify({'error': 'Fecha requerida'}), 400
     
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     horarios = []
     hora_actual = 9 * 60
@@ -433,7 +433,7 @@ def horarios_disponibles():
 def crear_cita():
     data = request.get_json()
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     try:
         execute_query(cursor, """
@@ -473,7 +473,7 @@ def crear_cita():
 @app.route('/api/citas/paciente/<int:paciente_id>', methods=['GET'])
 def citas_paciente(paciente_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, """
         SELECT * FROM citas 
@@ -503,7 +503,7 @@ def subir_archivo():
         file.save(filepath)
         
         conn = get_db()
-        cursor = conn.cursor()
+        cursor = db.get_cursor(conn)
         
         execute_query(cursor, """
             INSERT INTO archivos (paciente_id, nombre, tipo, descripcion, ruta)
@@ -526,7 +526,7 @@ def subir_archivo():
 @app.route('/api/archivos/<int:paciente_id>', methods=['GET'])
 def listar_archivos(paciente_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, """
         SELECT * FROM archivos 
@@ -541,7 +541,7 @@ def listar_archivos(paciente_id):
 @app.route('/api/archivos/<int:archivo_id>', methods=['DELETE'])
 def eliminar_archivo(archivo_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, "SELECT ruta FROM archivos WHERE id = ?", (archivo_id,))
     archivo = cursor.fetchone()
@@ -563,7 +563,7 @@ def eliminar_archivo(archivo_id):
 @app.route('/api/estadisticas')
 def get_estadisticas():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, "SELECT COUNT(*) as total FROM pacientes")
     total_pacientes = cursor.fetchone()
@@ -622,7 +622,7 @@ def whatsapp_status():
 @app.route('/api/whatsapp/mensajes', methods=['GET'])
 def whatsapp_mensajes():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, """
         SELECT * FROM whatsapp_mensajes 
@@ -640,7 +640,7 @@ def whatsapp_citas_manana():
     manana = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
     
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, """
         SELECT c.*, p.nombre_completo, p.telefono
@@ -658,7 +658,7 @@ def whatsapp_citas_manana():
 @app.route('/api/condiciones', methods=['GET', 'POST'])
 def manejar_condiciones():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     if request.method == 'POST':
         data = request.get_json()
@@ -682,7 +682,7 @@ def manejar_condiciones():
 @app.route('/api/condiciones/<int:id>', methods=['PUT', 'DELETE'])
 def modificar_condicion(id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     if request.method == 'PUT':
         data = request.get_json()
@@ -704,7 +704,7 @@ def modificar_condicion(id):
 def crear_abono():
     data = request.get_json()
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     try:
         execute_query(cursor, '''
@@ -742,7 +742,7 @@ def crear_abono():
 @app.route('/api/abonos/paciente/<int:paciente_id>', methods=['GET'])
 def abonos_paciente(paciente_id):
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, '''
         SELECT a.*, c.nombre as condicion_nombre
@@ -760,7 +760,7 @@ def abonos_paciente(paciente_id):
 def agregar_pago(abono_id):
     data = request.get_json()
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     try:
         execute_query(cursor, '''
@@ -799,7 +799,7 @@ def agregar_pago(abono_id):
 @app.route('/api/abonos/resumen', methods=['GET'])
 def resumen_abonos():
     conn = get_db()
-    cursor = conn.cursor()
+    cursor = db.get_cursor(conn)
     
     execute_query(cursor, '''
         SELECT COUNT(DISTINCT paciente_id) as total FROM abonos WHERE estado != 'pagado'
