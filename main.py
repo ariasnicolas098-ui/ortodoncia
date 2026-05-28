@@ -282,84 +282,85 @@ def manejar_pacientes():
     conn = get_db()
     cursor = db.get_cursor(conn)
     
-   if request.method == 'POST':
-    data = request.get_json()
+    if request.method == 'POST':
+        data = request.get_json()
+        
+        try:
+            if db.is_postgres:
+                execute_query(cursor, """
+                    INSERT INTO pacientes 
+                    (nombre_completo, dni, fecha_nacimiento, telefono, email, 
+                     direccion, alergias, medicamentos_actuales, condiciones_medicas)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    RETURNING id
+                """, (
+                    data['nombre_completo'],
+                    data.get('dni'),
+                    data.get('fecha_nacimiento'),
+                    data.get('telefono'),
+                    data.get('email'),
+                    data.get('direccion'),
+                    data.get('alergias', 'Ninguna'),
+                    data.get('medicamentos_actuales', 'Ninguno'),
+                    data.get('condiciones_medicas', 'Ninguna')
+                ), returning=True)
+                last_id = cursor.fetchone()[0]
+            else:
+                execute_query(cursor, """
+                    INSERT INTO pacientes 
+                    (nombre_completo, dni, fecha_nacimiento, telefono, email, 
+                     direccion, alergias, medicamentos_actuales, condiciones_medicas)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    data['nombre_completo'],
+                    data.get('dni'),
+                    data.get('fecha_nacimiento'),
+                    data.get('telefono'),
+                    data.get('email'),
+                    data.get('direccion'),
+                    data.get('alergias', 'Ninguna'),
+                    data.get('medicamentos_actuales', 'Ninguno'),
+                    data.get('condiciones_medicas', 'Ninguna')
+                ))
+                last_id = cursor.lastrowid
+            
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True, 'id': last_id}), 201
+            
+        except Exception as e:
+            conn.close()
+            return jsonify({'error': str(e)}), 400
     
-    try:
-        if db.is_postgres:
-            execute_query(cursor, """
-                INSERT INTO pacientes 
-                (nombre_completo, dni, fecha_nacimiento, telefono, email, 
-                 direccion, alergias, medicamentos_actuales, condiciones_medicas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                RETURNING id
-            """, (
-                data['nombre_completo'],
-                data.get('dni'),
-                data.get('fecha_nacimiento'),
-                data.get('telefono'),
-                data.get('email'),
-                data.get('direccion'),
-                data.get('alergias', 'Ninguna'),
-                data.get('medicamentos_actuales', 'Ninguno'),
-                data.get('condiciones_medicas', 'Ninguna')
-            ), returning=True)
-            last_id = cursor.fetchone()[0]
-        else:
-            execute_query(cursor, """
-                INSERT INTO pacientes 
-                (nombre_completo, dni, fecha_nacimiento, telefono, email, 
-                 direccion, alergias, medicamentos_actuales, condiciones_medicas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                data['nombre_completo'],
-                data.get('dni'),
-                data.get('fecha_nacimiento'),
-                data.get('telefono'),
-                data.get('email'),
-                data.get('direccion'),
-                data.get('alergias', 'Ninguna'),
-                data.get('medicamentos_actuales', 'Ninguno'),
-                data.get('condiciones_medicas', 'Ninguna')
-            ))
-            last_id = cursor.lastrowid
-        
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'id': last_id}), 201
-        
-    except Exception as e:
-        conn.close()
-        return jsonify({'error': str(e)}), 400    
-    else:  # GET
-        filtro = request.args.get('filtro', '')
-        
-        if filtro:
-            execute_query(cursor, """
-                SELECT id, nombre_completo as nombre, telefono,
-                       (SELECT MAX(fecha_consulta) FROM historial_odontologico 
-                        WHERE paciente_id = pacientes.id) as ultima_visita,
-                       (SELECT MIN(fecha) FROM citas 
-                        WHERE paciente_id = pacientes.id AND fecha >= CURRENT_DATE AND estado = 'programada') as proxima_cita
-                FROM pacientes 
-                WHERE LOWER(nombre_completo) LIKE ?
-                ORDER BY nombre_completo
-            """, (f'%{filtro.lower()}%',))
-        else:
-            execute_query(cursor, """
-                SELECT id, nombre_completo as nombre, telefono,
-                       (SELECT MAX(fecha_consulta) FROM historial_odontologico 
-                        WHERE paciente_id = pacientes.id) as ultima_visita,
-                       (SELECT MIN(fecha) FROM citas 
-                        WHERE paciente_id = pacientes.id AND fecha >= CURRENT_DATE AND estado = 'programada') as proxima_cita
-                FROM pacientes 
-                ORDER BY nombre_completo
-                LIMIT 50
-            """)
-        
-        pacientes = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return jsonify(pacientes)
+    # GET - Listar pacientes
+    filtro = request.args.get('filtro', '')
+    
+    if filtro:
+        execute_query(cursor, """
+            SELECT id, nombre_completo as nombre, telefono,
+                   (SELECT MAX(fecha_consulta) FROM historial_odontologico 
+                    WHERE paciente_id = pacientes.id) as ultima_visita,
+                   (SELECT MIN(fecha) FROM citas 
+                    WHERE paciente_id = pacientes.id AND fecha >= CURRENT_DATE AND estado = 'programada') as proxima_cita
+            FROM pacientes 
+            WHERE LOWER(nombre_completo) LIKE ?
+            ORDER BY nombre_completo
+        """, (f'%{filtro.lower()}%',))
+    else:
+        execute_query(cursor, """
+            SELECT id, nombre_completo as nombre, telefono,
+                   (SELECT MAX(fecha_consulta) FROM historial_odontologico 
+                    WHERE paciente_id = pacientes.id) as ultima_visita,
+                   (SELECT MIN(fecha) FROM citas 
+                    WHERE paciente_id = pacientes.id AND fecha >= CURRENT_DATE AND estado = 'programada') as proxima_cita
+            FROM pacientes 
+            ORDER BY nombre_completo
+            LIMIT 50
+        """)
+    
+    pacientes = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(pacientes)
 
 @app.route('/api/pacientes/<int:paciente_id>', methods=['GET'])
 def obtener_paciente(paciente_id):
@@ -753,7 +754,7 @@ def crear_abono():
         elif abono_inicial > 0:
             estado = 'abonado'
 
-        # Insertar abono con RETURNING para PostgreSQL
+        # Insertar abono
         if db.is_postgres:
             execute_query(cursor, '''
                 INSERT INTO abonos 
@@ -795,7 +796,7 @@ def crear_abono():
         return jsonify({'success': True, 'id': abono_id, 'estado': estado}), 201
         
     except Exception as e:
-        conn.rollback()  # Importante: rollback en caso de error
+        conn.rollback()
         conn.close()
         print(f"❌ Error en crear_abono: {e}")
         import traceback
@@ -911,7 +912,7 @@ def resumen_abonos():
         
         abonos = [dict(row) for row in cursor.fetchall()]
         
-        # Convertir saldos a float para JSON
+        # Convertir valores a float
         for a in abonos:
             a['saldo'] = float(a['saldo'] or 0)
             a['precio_total'] = float(a['precio_total'] or 0)
@@ -932,6 +933,7 @@ def resumen_abonos():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 # ========== INICIALIZACIÓN ==========
 if __name__ == '__main__':
     init_db()
