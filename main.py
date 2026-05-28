@@ -703,10 +703,29 @@ def modificar_condicion(id):
 @app.route('/api/abonos', methods=['POST'])
 def crear_abono():
     data = request.get_json()
+    
+    # Validar que lleguen los datos necesarios
+    if not data:
+        return jsonify({'error': 'No se recibieron datos'}), 400
+    
+    required_fields = ['paciente_id', 'condicion_id', 'precio_total']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Falta el campo {field}'}), 400
+
     conn = get_db()
-    cursor = db.get_cursor(conn)
+    cursor = db.get_cursor(conn)  # USAR db.get_cursor
     
     try:
+        # Obtener info de la condición para validación
+        execute_query(cursor, "SELECT precio FROM condiciones WHERE id = ?", (data['condicion_id'],))
+        condicion = cursor.fetchone()
+        
+        if not condicion:
+            conn.close()
+            return jsonify({'error': 'La condición seleccionada no existe'}), 400
+
+        # Insertar abono
         execute_query(cursor, '''
             INSERT INTO abonos 
             (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
@@ -715,18 +734,20 @@ def crear_abono():
             data['paciente_id'],
             data['condicion_id'],
             data['precio_total'],
-            data['abono_inicial'],
-            data['estado'],
+            data.get('abono_inicial', 0),
+            data.get('estado', 'pendiente'),
             data.get('notas', '')
         ))
         
+        # Obtener el ID insertado
         if db.is_postgres:
             execute_query(cursor, "SELECT lastval()")
             abono_id = cursor.fetchone()[0]
         else:
             abono_id = cursor.lastrowid
         
-        if data['abono_inicial'] > 0:
+        # Registrar el pago inicial si existe
+        if data.get('abono_inicial', 0) > 0:
             execute_query(cursor, '''
                 INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
             ''', (abono_id, data['abono_inicial']))
@@ -737,6 +758,7 @@ def crear_abono():
         
     except Exception as e:
         conn.close()
+        print(f"Error en crear_abono: {e}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/abonos/paciente/<int:paciente_id>', methods=['GET'])
