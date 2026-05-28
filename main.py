@@ -5,17 +5,14 @@ from datetime import datetime, timedelta
 
 from database import db
 
-# Intentar importar el blueprint de WhatsApp si existe
 try:
     from whatsapp_integration import whatsapp_bp
     WHATSAPP_BP_EXISTS = True
 except ImportError:
     WHATSAPP_BP_EXISTS = False
-    print("⚠️ whatsapp_integration no encontrado, continuando sin él")
 
 app = Flask(__name__)
 
-# Configurar carpeta de uploads
 UPLOAD_FOLDER = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/app/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     UPLOAD_FOLDER = 'uploads'
@@ -25,9 +22,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-print(f"📁 Carpeta uploads: {app.config['UPLOAD_FOLDER']}")
 
-# Registrar blueprint de WhatsApp si existe
 if WHATSAPP_BP_EXISTS:
     app.register_blueprint(whatsapp_bp)
 
@@ -39,15 +34,9 @@ def allowed_file(filename):
 def get_db():
     return db.get_connection()
 
-# ========== HELPER PARA QUERIES ==========
 def execute_query(cursor, query, params=None, returning=False):
-    """
-    Ejecuta una query adaptando automáticamente los placeholders
-    de SQLite (?) a PostgreSQL (%s)
-    """
     if db.is_postgres:
         query = query.replace('?', '%s')
-        # Si es INSERT y necesitamos el ID de vuelta, agregar RETURNING
         if returning and 'INSERT INTO' in query and 'RETURNING' not in query.upper():
             query = query.rstrip(';') + ' RETURNING id;'
     
@@ -58,13 +47,10 @@ def execute_query(cursor, query, params=None, returning=False):
     
     return cursor
 
-# ========== INICIALIZAR DB ==========
 def init_db():
-    """Inicializar todas las tablas con sintaxis compatible"""
     conn = db.get_connection()
     cursor = db.get_cursor(conn)
     
-    # Tipo de PRIMARY KEY según la base de datos
     if db.is_postgres:
         pk_type = "SERIAL PRIMARY KEY"
     else:
@@ -72,7 +58,6 @@ def init_db():
     
     print("🔧 Creando tablas si no existen...")
     
-    # Tabla pacientes
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS pacientes (
             id {pk_type},
@@ -89,7 +74,6 @@ def init_db():
         )
     ''')
     
-    # Tabla historial odontológico
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS historial_odontologico (
             id {pk_type},
@@ -106,7 +90,6 @@ def init_db():
         )
     ''')
     
-    # Tabla citas
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS citas (
             id {pk_type},
@@ -121,7 +104,6 @@ def init_db():
         )
     ''')
     
-    # Tabla archivos
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS archivos (
             id {pk_type},
@@ -134,7 +116,6 @@ def init_db():
         )
     ''')
     
-    # Tablas de WhatsApp
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS whatsapp_mensajes (
             id {pk_type},
@@ -157,7 +138,6 @@ def init_db():
         )
     ''')
     
-    # Tablas de abonos
     cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS condiciones (
             id {pk_type},
@@ -193,7 +173,6 @@ def init_db():
     conn.close()
     print("✅ Base de datos inicializada correctamente")
 
-# ========== RUTAS DE VISTAS ==========
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -206,7 +185,6 @@ def admin():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ========== API: BÚSQUEDA ==========
 @app.route('/api/buscar')
 def buscar_paciente():
     query = request.args.get('q', '').strip().lower()
@@ -245,7 +223,6 @@ def buscar_paciente():
         
         resultado.append(p)
     
-    # Búsqueda difusa si no hay resultados
     if not resultado:
         try:
             from thefuzz import fuzz
@@ -276,7 +253,6 @@ def buscar_paciente():
     conn.close()
     return jsonify(resultado)
 
-# ========== API: PACIENTES ==========
 @app.route('/api/pacientes', methods=['GET', 'POST'])
 def manejar_pacientes():
     conn = get_db()
@@ -304,7 +280,8 @@ def manejar_pacientes():
                     data.get('medicamentos_actuales', 'Ninguno'),
                     data.get('condiciones_medicas', 'Ninguna')
                 ), returning=True)
-                last_id = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                last_id = result['id'] if isinstance(result, dict) else result[0]
             else:
                 execute_query(cursor, """
                     INSERT INTO pacientes 
@@ -332,7 +309,6 @@ def manejar_pacientes():
             conn.close()
             return jsonify({'error': str(e)}), 400
     
-    # GET - Listar pacientes
     filtro = request.args.get('filtro', '')
     
     if filtro:
@@ -377,7 +353,6 @@ def obtener_paciente(paciente_id):
     else:
         return jsonify({'error': 'Paciente no encontrado'}), 404
 
-# ========== API: CONSULTAS ==========
 @app.route('/api/consultas', methods=['POST'])
 def crear_consulta():
     data = request.get_json()
@@ -411,7 +386,6 @@ def crear_consulta():
         conn.close()
         return jsonify({'error': str(e)}), 400
 
-# ========== API: CITAS ==========
 @app.route('/api/citas/disponibles', methods=['GET'])
 def horarios_disponibles():
     fecha = request.args.get('fecha')
@@ -468,20 +442,18 @@ def crear_cita():
         execute_query(cursor, """
             INSERT INTO citas (paciente_id, fecha, hora, motivo, estado)
             VALUES (?, ?, ?, ?, 'programada')
+            RETURNING id
         """, (
             data['paciente_id'],
             data['fecha'],
             data['hora'],
             data.get('motivo')
-        ))
+        ), returning=True)
         
         conn.commit()
         
-        if db.is_postgres:
-            execute_query(cursor, "SELECT lastval()")
-            cita_id = cursor.fetchone()[0]
-        else:
-            cita_id = cursor.lastrowid
+        result = cursor.fetchone()
+        cita_id = result['id'] if isinstance(result, dict) else result[0]
         
         conn.close()
         return jsonify({'success': True, 'id': cita_id}), 201
@@ -505,7 +477,6 @@ def citas_paciente(paciente_id):
     conn.close()
     return jsonify(citas)
 
-# ========== API: ARCHIVOS ==========
 @app.route('/api/archivos', methods=['POST'])
 def subir_archivo():
     if 'archivo' not in request.files:
@@ -579,7 +550,6 @@ def eliminar_archivo(archivo_id):
     conn.close()
     return jsonify({'success': True})
 
-# ========== API: ESTADÍSTICAS ==========
 @app.route('/api/estadisticas')
 def get_estadisticas():
     conn = get_db()
@@ -618,7 +588,6 @@ def get_estadisticas():
         'proximas_citas': proximas_citas
     })
 
-# ========== DEBUG ==========
 @app.route('/api/debug/archivos')
 def debug_archivos():
     ruta = app.config['UPLOAD_FOLDER']
@@ -629,7 +598,6 @@ def debug_archivos():
         'total': len(archivos)
     })
 
-# ========== API: WHATSAPP ==========
 @app.route('/api/whatsapp/status', methods=['GET'])
 def whatsapp_status():
     stats = db.obtener_estadisticas_whatsapp()
@@ -674,7 +642,6 @@ def whatsapp_citas_manana():
     
     return jsonify(citas)
 
-# ========== API: CONDICIONES/PRECIOS ==========
 @app.route('/api/condiciones', methods=['GET', 'POST'])
 def manejar_condiciones():
     conn = get_db()
@@ -719,7 +686,6 @@ def modificar_condicion(id):
         conn.close()
         return jsonify({'success': True})
 
-# ========== API: ABONOS ==========
 @app.route('/api/abonos', methods=['POST'])
 def crear_abono():
     data = request.get_json()
@@ -736,7 +702,6 @@ def crear_abono():
     cursor = db.get_cursor(conn)
     
     try:
-        # Verificar que la condición existe
         execute_query(cursor, "SELECT precio FROM condiciones WHERE id = ?", (data['condicion_id'],))
         condicion = cursor.fetchone()
         
@@ -747,45 +712,30 @@ def crear_abono():
         abono_inicial = float(data.get('abono_inicial', 0))
         precio_total = float(data['precio_total'])
         
-        # Determinar estado inicial
         estado = 'pendiente'
         if abono_inicial >= precio_total:
             estado = 'pagado'
         elif abono_inicial > 0:
             estado = 'abonado'
 
-        # Insertar abono
-        if db.is_postgres:
-            execute_query(cursor, '''
-                INSERT INTO abonos 
-                (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
-                VALUES (?, ?, ?, ?, ?, ?)
-                RETURNING id
-            ''', (
-                data['paciente_id'],
-                data['condicion_id'],
-                precio_total,
-                abono_inicial,
-                estado,
-                data.get('notas', '')
-            ), returning=True)
-            abono_id = cursor.fetchone()[0]
-        else:
-            execute_query(cursor, '''
-                INSERT INTO abonos 
-                (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                data['paciente_id'],
-                data['condicion_id'],
-                precio_total,
-                abono_inicial,
-                estado,
-                data.get('notas', '')
-            ))
-            abono_id = cursor.lastrowid
+        execute_query(cursor, '''
+            INSERT INTO abonos 
+            (paciente_id, condicion_id, precio_total, total_abonado, estado, notas)
+            VALUES (?, ?, ?, ?, ?, ?)
+            RETURNING id
+        ''', (
+            data['paciente_id'],
+            data['condicion_id'],
+            precio_total,
+            abono_inicial,
+            estado,
+            data.get('notas', '')
+        ), returning=True)
         
-        # Registrar el pago inicial si existe
+        # CORRECCIÓN: Usar ['id'] en lugar de [0]
+        result = cursor.fetchone()
+        abono_id = result['id'] if isinstance(result, dict) else result[0]
+        
         if abono_inicial > 0:
             execute_query(cursor, '''
                 INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
@@ -866,14 +816,12 @@ def resumen_abonos():
     cursor = db.get_cursor(conn)
     
     try:
-        # Pacientes con deuda
         execute_query(cursor, '''
             SELECT COUNT(DISTINCT paciente_id) as total FROM abonos WHERE estado != 'pagado'
         ''')
         row = cursor.fetchone()
         pacientes_deuda = int(row['total'] if isinstance(row, dict) else row[0] or 0)
         
-        # Ingresos del mes
         hoy = datetime.now()
         primer_dia = hoy.replace(day=1).strftime('%Y-%m-%d')
         
@@ -891,7 +839,6 @@ def resumen_abonos():
         row = cursor.fetchone()
         ingresos_mes = float(row['total'] if isinstance(row, dict) else row[0] or 0)
         
-        # Por cobrar
         execute_query(cursor, '''
             SELECT COALESCE(SUM(precio_total - total_abonado), 0) as total 
             FROM abonos WHERE estado != 'pagado'
@@ -899,7 +846,6 @@ def resumen_abonos():
         row = cursor.fetchone()
         por_cobrar = float(row['total'] if isinstance(row, dict) else row[0] or 0)
         
-        # Lista de abonos
         execute_query(cursor, '''
             SELECT a.*, p.nombre_completo as paciente_nombre, c.nombre as condicion_nombre,
                    (a.precio_total - a.total_abonado) as saldo
@@ -912,7 +858,6 @@ def resumen_abonos():
         
         abonos = [dict(row) for row in cursor.fetchall()]
         
-        # Convertir valores a float
         for a in abonos:
             a['saldo'] = float(a['saldo'] or 0)
             a['precio_total'] = float(a['precio_total'] or 0)
@@ -934,7 +879,6 @@ def resumen_abonos():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-# ========== INICIALIZACIÓN ==========
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
