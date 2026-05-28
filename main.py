@@ -842,7 +842,7 @@ def resumen_abonos():
     return jsonify({
         'pacientes_con_deuda': pacientes_deuda,
         'ingresos_mes': float(ingresos_mes),
-        'por_cobrar': float(por_cobrar),  # <-- CORREGIDO AQUÍ (antes decía por_coblar)
+        'por_cobrar': float(por_cobrar),  # AQUI ESTABA EL ERROR
         'abonos': abonos
     })
 # ========== INICIALIZACIÓN ==========
