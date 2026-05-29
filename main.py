@@ -343,46 +343,69 @@ def obtener_paciente(paciente_id):
     conn = get_db()
     cursor = db.get_cursor(conn)
     
-    # 1. Datos básicos
-    execute_query(cursor, "SELECT * FROM pacientes WHERE id = ?", (paciente_id,))
-    paciente = cursor.fetchone()
-    
-    if not paciente:
+    # Función auxiliar para convertir fechas/horas a texto
+    def clean_row(row):
+        r = dict(row)
+        for key, value in r.items():
+            # Si el valor tiene método isoformat (fechas/horas), lo convertimos a string
+            if hasattr(value, 'isoformat'):
+                r[key] = value.isoformat()
+        return r
+
+    try:
+        # 1. Datos básicos
+        query = "SELECT * FROM pacientes WHERE id = %s" if db.is_postgres else "SELECT * FROM pacientes WHERE id = ?"
+        cursor.execute(query, (paciente_id,))
+        paciente = cursor.fetchone()
+        
+        if not paciente:
+            conn.close()
+            return jsonify({'error': 'Paciente no encontrado'}), 404
+        
+        p = clean_row(paciente)
+        
+        # 2. Historial
+        query = "SELECT * FROM historial_odontologico WHERE paciente_id = %s" if db.is_postgres else "SELECT * FROM historial_odontologico WHERE paciente_id = ?"
+        cursor.execute(query, (paciente_id,))
+        p['historial'] = [clean_row(row) for row in cursor.fetchall()]
+        
+        # 3. Archivos
+        query = "SELECT * FROM archivos WHERE paciente_id = %s" if db.is_postgres else "SELECT * FROM archivos WHERE paciente_id = ?"
+        cursor.execute(query, (paciente_id,))
+        archivos = []
+        for row in cursor.fetchall():
+            a = clean_row(row)
+            a['url'] = f"/uploads/{a['ruta']}"
+            archivos.append(a)
+        p['archivos'] = archivos
+        
+        # 4. Citas
+        query = "SELECT * FROM citas WHERE paciente_id = %s" if db.is_postgres else "SELECT * FROM citas WHERE paciente_id = ?"
+        cursor.execute(query, (paciente_id,))
+        p['citas'] = [clean_row(row) for row in cursor.fetchall()]
+        
+        # 5. Abonos
+        query = """
+            SELECT a.*, c.nombre as condicion_nombre
+            FROM abonos a JOIN condiciones c ON a.condicion_id = c.id
+            WHERE a.paciente_id = %s
+        """ if db.is_postgres else """
+            SELECT a.*, c.nombre as condicion_nombre
+            FROM abonos a JOIN condiciones c ON a.condicion_id = c.id
+            WHERE a.paciente_id = ?
+        """
+        cursor.execute(query, (paciente_id,))
+        p['abonos'] = [clean_row(row) for row in cursor.fetchall()]
+        
         conn.close()
-        return jsonify({'error': 'Paciente no encontrado'}), 404
-    
-    p = dict(paciente)
-    
-    # 2. Historial
-    execute_query(cursor, "SELECT * FROM historial_odontologico WHERE paciente_id = ? ORDER BY fecha_consulta DESC", (paciente_id,))
-    p['historial'] = [dict(h) for h in cursor.fetchall()]
-    
-    # 3. Archivos (IMPORTANTE: Aquí se genera la URL completa)
-    execute_query(cursor, "SELECT * FROM archivos WHERE paciente_id = ? ORDER BY fecha_subida DESC", (paciente_id,))
-    archivos = []
-    for row in cursor.fetchall():
-        a = dict(row)
-        # Creamos la URL accesible desde la web
-        a['url'] = f"/uploads/{a['ruta']}" 
-        archivos.append(a)
-    p['archivos'] = archivos
-    
-    # 4. Citas
-    execute_query(cursor, "SELECT * FROM citas WHERE paciente_id = ? ORDER BY fecha DESC, hora DESC", (paciente_id,))
-    p['citas'] = [dict(c) for c in cursor.fetchall()]
-    
-    # 5. Abonos
-    execute_query(cursor, """
-        SELECT a.*, c.nombre as condicion_nombre
-        FROM abonos a
-        JOIN condiciones c ON a.condicion_id = c.id
-        WHERE a.paciente_id = ?
-        ORDER BY a.fecha_registro DESC
-    """, (paciente_id,))
-    p['abonos'] = [dict(a) for a in cursor.fetchall()]
-    
-    conn.close()
-    return jsonify(p)
+        return jsonify(p)
+
+    except Exception as e:
+        conn.close()
+        print(f"❌ ERROR en obtener_paciente: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/consultas', methods=['POST'])
