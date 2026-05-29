@@ -2013,13 +2013,17 @@ async function editarCondicion(id) {
 }
 
 async function eliminarCondicion(id) {
-    if (!confirm('¿Eliminar esta condición? Los abonos existentes no se verán afectados.')) return;
+    if (!confirm('¿Eliminar esta condición?')) return;
     
     try {
         const res = await fetch(`${API_URL}/api/condiciones/${id}`, {method: 'DELETE'});
+        
         if (res.ok) {
             showAlert('Condición eliminada');
             cargarCondiciones();
+        } else {
+            const error = await res.json();
+            showAlert(error.error || 'No se pudo eliminar', 'error');
         }
     } catch (err) {
         showAlert('Error al eliminar', 'error');
