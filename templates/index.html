@@ -626,25 +626,22 @@ async function verPaciente(id, nombre) {
     resultados.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando información del paciente...</p></div>`;
 
     try {
-        // Obtener datos del paciente
-        const resPaciente = await fetch(`${API_URL}/api/pacientes/${id}`);
-        const paciente = await resPaciente.json();
+        // CAMBIO IMPORTANTE: Hacemos UNA sola petición al backend unificado
+        const res = await fetch(`${API_URL}/api/pacientes/${id}`);
         
-        // Obtener archivos del paciente
-        const resArchivos = await fetch(`${API_URL}/api/archivos/${id}`);
-        const archivos = await resArchivos.json();
+        if (!res.ok) {
+            throw new Error("Error al cargar datos");
+        }
         
-        // ========== NUEVO: Obtener citas del paciente ==========
-        const resCitas = await fetch(`${API_URL}/api/citas/paciente/${id}`);
-        const citas = await resCitas.json();
+        const paciente = await res.json();
         
-        // ========== NUEVO: Obtener abonos del paciente ==========
-        const resAbonos = await fetch(`${API_URL}/api/abonos/paciente/${id}`);
-        const abonos = await resAbonos.json();
-
-        mostrarDetallePaciente(paciente, archivos, citas, abonos);
+        // Pasamos los datos directamente a la función de mostrar
+        // Ya no hacemos fetch separados para archivos, citas o abonos
+        mostrarDetallePaciente(paciente, paciente.archivos || [], paciente.citas || [], paciente.abonos || []);
+        
     } catch (error) {
-        resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error al cargar los datos del paciente</div>`;
+        console.error(error);
+        resultados.innerHTML = `<div class="no-results" style="color: red;">❌ Error al cargar los datos del paciente.<br>Detalles: ${error.message}</div>`;
     }
 }
 
@@ -667,7 +664,7 @@ async function verPaciente(id, nombre) {
         archivosHtml = `
             <div class="files-grid">
                 ${archivos.map(a => `
-                    <div class="file-item" onclick="verArchivo('${a.url || a.ruta}')">
+                    <div class="file-item" onclick="verArchivo('${a.url}')">
                         <div class="file-icon">${iconosArchivo[a.tipo] || '📎'}</div>
                         <div class="file-name">${a.descripcion || a.nombre}</div>
                     </div>
@@ -712,8 +709,9 @@ async function verPaciente(id, nombre) {
         abonosHtml = `
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 ${abonos.map(a => {
-                    totalDeuda += parseFloat(a.precio_total);
-                    totalAbonado += parseFloat(a.total_abonado);
+                    // Dentro del mapeo de abonos
+                    totalDeuda += parseFloat(a.precio_total) || 0;
+                    totalAbonado += parseFloat(a.total_abonado) || 0;
                     const saldo = parseFloat(a.precio_total) - parseFloat(a.total_abonado);
                     const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
                     const estadoColor = a.estado === 'pagado' ? '#4CAF50' : a.estado === 'abonado' ? '#FF9800' : '#f44336';
@@ -840,6 +838,10 @@ async function verPaciente(id, nombre) {
 }
 
         function verArchivo(url) {
+            // Si la URL no empieza con http, le agregamos el dominio base (opcional, por si acaso)
+            if (url && !url.startsWith('http')) {
+                // Como la URL viene del backend como "/uploads/...", está bien
+            }
             window.open(url, '_blank');
         }
 
