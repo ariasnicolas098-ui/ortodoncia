@@ -542,9 +542,13 @@ def subir_archivo():
         return jsonify({'error': 'Nombre de archivo vacío'}), 400
     
     if file and allowed_file(file.filename):
+        # LIMPIAR EL NOMBRE DEL ARCHIVO (quita espacios y caracteres raros)
         filename = secure_filename(file.filename)
+        
+        # Crear nombre único con fecha
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{timestamp}_{filename}"
+        
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(filepath)
         
@@ -556,10 +560,10 @@ def subir_archivo():
             VALUES (?, ?, ?, ?, ?)
         """, (
             request.form['paciente_id'], 
-            filename, 
+            filename,  # Nombre original
             request.form['tipo'], 
             request.form.get('descripcion'), 
-            unique_filename
+            unique_filename # Nombre limpio guardado en disco
         ))
         
         conn.commit()
