@@ -725,14 +725,14 @@ async function verPaciente(id, nombre) {
 function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
     pacienteActual = paciente;
     
-    // 1. Definir el contenedor del visor (debe ir dentro del HTML principal)
+    // 1. Definir el HTML del visor de archivos (se mostrará al hacer clic)
     const viewerHtml = `
-        <div id="viewer-container" class="viewer-container">
-            <div class="viewer-header">
-                <span id="viewer-title" class="viewer-title">Archivo</span>
-                <button class="viewer-close" onclick="cerrarVisor()">✖ Cerrar</button>
+        <div id="viewer-container" class="viewer-container" style="display:none; margin-top:20px; padding:20px; background:#f0f2f5; border-radius:12px; border:2px solid #667eea;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h4 id="viewer-title" style="margin:0; color:#333;">Archivo</h4>
+                <button onclick="cerrarVisor()" style="background:#f44336; color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer;">✖ Cerrar</button>
             </div>
-            <div id="viewer-content" class="viewer-content"></div>
+            <div id="viewer-content"></div>
         </div>
     `;
 
@@ -744,11 +744,8 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
         archivosHtml = `
             <div class="files-grid">
                 ${archivos.map(a => {
-                    // Iconos según tipo
                     const iconos = { 'radiografia': '🩻', 'foto': '📷', 'documento': '📄', 'pdf': '📑' };
                     const icon = iconos[a.tipo] || '📎';
-                    const isImg = a.tipo === 'radiografia' || a.tipo === 'foto';
-                    
                     return `
                         <div class="file-item" onclick="mostrarVisor('${a.url}', '${a.tipo}', '${a.nombre}')">
                             <div class="file-icon">${icon}</div>
@@ -757,19 +754,45 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
                     `;
                 }).join('')}
             </div>
+            ${viewerHtml}
         `;
     }
 
-    // 3. Generar HTML de Abonos (CON SEPARADORES DE MILES)
+    // 3. Generar HTML de Citas
+    let citasHtml = '';
+    if (citas.length === 0) {
+        citasHtml = '<p style="color:#999; text-align:center; padding:20px;">No tiene citas registradas</p>';
+    } else {
+        citasHtml = `
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                ${citas.map(c => {
+                    const fecha = new Date(c.fecha).toLocaleDateString('es-ES');
+                    const estadoColor = c.estado === 'programada' ? '#4CAF50' : c.estado === 'completada' ? '#2196F3' : '#f44336';
+                    const estadoIcono = c.estado === 'programada' ? '📅' : c.estado === 'completada' ? '✅' : '❌';
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:#f8f9fa; border-radius:8px; border-left:4px solid ${estadoColor};">
+                            <div>
+                                <div style="font-weight:600; color:#333;">${estadoIcono} ${fecha} - ${c.hora || 'Sin hora'}</div>
+                                <div style="font-size:13px; color:#666;">${c.motivo || 'Consulta general'}</div>
+                            </div>
+                            <span style="padding:4px 12px; border-radius:12px; font-size:12px; background:${estadoColor}20; color:${estadoColor}; text-transform:uppercase;">${c.estado}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    // 4. Generar HTML de Abonos (Con separadores de miles)
     let totalDeuda = 0;
     let totalAbonado = 0;
     
     let abonosHtml = '';
     if (abonos.length === 0) {
-        abonosHtml = '<p style="color: #999; text-align: center; padding: 20px;">No tiene abonos registrados</p>';
+        abonosHtml = '<p style="color:#999; text-align:center; padding:20px;">No tiene abonos registrados</p>';
     } else {
         abonosHtml = `
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display:flex; flex-direction:column; gap:12px;">
                 ${abonos.map(a => {
                     totalDeuda += parseFloat(a.precio_total);
                     totalAbonado += parseFloat(a.total_abonado);
@@ -778,12 +801,12 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
                     const estadoColor = a.estado === 'pagado' ? '#4CAF50' : a.estado === 'abonado' ? '#FF9800' : '#f44336';
                     
                     return `
-                        <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid ${estadoColor};">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-weight: 600;">${a.condicion_nombre}</span>
-                                <span style="color: ${estadoColor}; text-transform: uppercase; font-size: 0.8em;">${a.estado}</span>
+                        <div style="padding:15px; background:#f8f9fa; border-radius:10px; border-left:4px solid ${estadoColor};">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span style="font-weight:600;">${a.condicion_nombre}</span>
+                                <span style="color:${estadoColor}; text-transform:uppercase; font-size:0.8em;">${a.estado}</span>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em;">
                                 <div>Total: <strong>${formatMoney(a.precio_total)}</strong></div>
                                 <div>Abonado: <strong style="color:#4CAF50;">${formatMoney(a.total_abonado)}</strong></div>
                                 <div>Saldo: <strong style="color:${saldo > 0 ? '#f44336' : '#333'};">${formatMoney(saldo)}</strong></div>
@@ -801,23 +824,23 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
     // Resumen Financiero
     const saldoPendiente = totalDeuda - totalAbonado;
     const resumenHtml = `
-        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;">
+        <div style="margin-top:20px; padding:15px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:12px; color:white; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; text-align:center;">
             <div>
-                <div style="font-size: 0.8em; opacity: 0.9;">Total Deuda</div>
-                <div style="font-size: 1.2em; font-weight: bold;">${formatMoney(totalDeuda)}</div>
+                <div style="font-size:0.8em; opacity:0.9;">Total Deuda</div>
+                <div style="font-size:1.2em; font-weight:bold;">${formatMoney(totalDeuda)}</div>
             </div>
             <div>
-                <div style="font-size: 0.8em; opacity: 0.9;">Total Abonado</div>
-                <div style="font-size: 1.2em; font-weight: bold;">${formatMoney(totalAbonado)}</div>
+                <div style="font-size:0.8em; opacity:0.9;">Total Abonado</div>
+                <div style="font-size:1.2em; font-weight:bold;">${formatMoney(totalAbonado)}</div>
             </div>
             <div>
-                <div style="font-size: 0.8em; opacity: 0.9;">Saldo Pendiente</div>
-                <div style="font-size: 1.2em; font-weight: bold; color: ${saldoPendiente > 0 ? '#FFD700' : '#90EE90'};">${formatMoney(saldoPendiente)}</div>
+                <div style="font-size:0.8em; opacity:0.9;">Saldo Pendiente</div>
+                <div style="font-size:1.2em; font-weight:bold; color:${saldoPendiente > 0 ? '#FFD700' : '#90EE90'};">${formatMoney(saldoPendiente)}</div>
             </div>
         </div>
     `;
 
-    // 4. Renderizar todo
+    // 5. Renderizar TODO en la página
     document.getElementById('resultados').innerHTML = `
         <div class="patient-card">
             <div class="patient-header">
@@ -827,24 +850,84 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
                 </div>
             </div>
             
+            <!-- DATOS COMPLETOS DEL PACIENTE -->
             <div class="patient-grid">
-                <div class="info-item"><div class="info-label">DNI</div><div class="info-value">${paciente.dni || '-'}</div></div>
-                <div class="info-item"><div class="info-label">Teléfono</div><div class="info-value">${paciente.telefono || '-'}</div></div>
-                <div class="info-item"><div class="info-label">Email</div><div class="info-value">${paciente.email || '-'}</div></div>
-                <div class="info-item"><div class="info-label">Alergias</div><div class="info-value" style="color:#f44336;">${paciente.alergias || 'Ninguna'}</div></div>
+                <div class="info-item">
+                    <div class="info-label">DNI / Documento</div>
+                    <div class="info-value">${paciente.dni || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teléfono</div>
+                    <div class="info-value">${paciente.telefono || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">${paciente.email || 'No registrado'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Fecha de Nacimiento</div>
+                    <div class="info-value">${paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No registrada'}</div>
+                </div>
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="info-label">Dirección</div>
+                    <div class="info-value">${paciente.direccion || 'No registrada'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Alergias</div>
+                    <div class="info-value">${paciente.alergias || 'Ninguna'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Medicamentos Actuales</div>
+                    <div class="info-value">${paciente.medicamentos_actuales || 'Ninguno'}</div>
+                </div>
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="info-label">Condiciones Médicas</div>
+                    <div class="info-value">${paciente.condiciones_medicas || 'Ninguna'}</div>
+                </div>
             </div>
 
+            <!-- HISTORIAL DE CONSULTAS (Si tienes datos en 'paciente.historial') -->
+            ${paciente.historial && paciente.historial.length > 0 ? `
+                <div class="archivos-section">
+                    <div class="archivos-title">🦷 Historial de Consultas (${paciente.historial.length})</div>
+                    <table class="table" style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <thead>
+                            <tr style="background:#f0f0f0;">
+                                <th style="padding:10px; text-align:left;">Fecha</th>
+                                <th style="padding:10px; text-align:left;">Procedimiento</th>
+                                <th style="padding:10px; text-align:left;">Diagnóstico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${paciente.historial.map(h => `
+                                <tr>
+                                    <td style="padding:10px; border-bottom:1px solid #eee;">${h.fecha_consulta || '-'}</td>
+                                    <td style="padding:10px; border-bottom:1px solid #eee;">${h.procedimiento || '-'}</td>
+                                    <td style="padding:10px; border-bottom:1px solid #eee;">${h.diagnostico || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : ''}
+
+            <!-- CITAS -->
             <div class="archivos-section">
-                <div class="archivos-title">💰 Abonos y Pagos (${abonos.length})</div>
+                <div class="archivos-title">📅 Citas (${citas.length})</div>
+                ${citasHtml}
+            </div>
+
+            <!-- ABONOS -->
+            <div class="archivos-section">
+                <div class="archivos-title">💳 Abonos y Pagos (${abonos.length})</div>
                 ${abonosHtml}
                 ${resumenHtml}
             </div>
 
+            <!-- ARCHIVOS -->
             <div class="archivos-section">
                 <div class="archivos-title">📎 Archivos y Documentos (${archivos.length})</div>
                 ${archivosHtml}
-                <!-- AQUÍ SE MOSTRARÁ EL ARCHIVO SELECCIONADO -->
-                ${viewerHtml}
             </div>
         </div>
     `;
