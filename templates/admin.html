@@ -1224,6 +1224,40 @@
         let abonoSeleccionadoId = null;
         let condicionesPrecios = [];
 
+        // Función para formatear dinero con separadores de miles
+function formatMoney(amount) {
+    if (amount === null || amount === undefined) return '$0.00';
+    let num = parseFloat(amount);
+    if (isNaN(num)) num = 0;
+    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Función para formatear fecha y hora
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+}
+
+// Funciones para formatear inputs mientras escribes (opcional al salir del campo)
+function formatInputNumber(input) {
+    let value = input.value.replace(/[^0-9.]/g, '');
+    if(value) {
+        input.value = parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+}
+
+function unformatInputNumber(input) {
+    let value = input.value.replace(/[^0-9.]/g, '');
+    input.value = value;
+}
+
+// Función para limpiar valores antes de enviar al servidor
+function cleanNumber(value) {
+    if (!value) return 0;
+    return parseFloat(String(value).replace(/[^0-9.]/g, ''));
+}
+
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
             const hoy = new Date().toISOString().split('T')[0];
@@ -1711,7 +1745,7 @@ function mostrarCondiciones() {
                 <div class="condicion-nombre">${c.nombre}</div>
             </div>
             <div class="condicion-precio">
-                $${parseFloat(c.precio).toFixed(2)}
+                ${formatMoney(c.precio)}
             </div>
             <div class="condicion-acciones">
                 <button onclick="editarCondicion(${c.id})" class="btn btn-primary btn-xs">✏️</button>
@@ -1840,31 +1874,32 @@ function seleccionarPacienteAbono(id, nombre) {
 }
 
     // ========== GESTIÓN DE ABONOS ==========
-    async function guardarAbono() {
-        if (!pacienteAbonoActual) {
-            showAlert('Seleccione un paciente primero', 'error');
-            return;
-        }
-        
-        const condicionId = document.getElementById('condicionAbono').value;
-        const precioTotal = document.getElementById('precioTotalAbono').value;
-        const abonoInicial = document.getElementById('abonoInicial').value;
-        const estado = document.getElementById('estadoAbono').value;
-        const notas = document.getElementById('notasAbono').value;
-        
-        if (!condicionId || !precioTotal) {
-            showAlert('Seleccione condición y precio', 'error');
-            return;
-        }
-        
-        const data = {
-            paciente_id: pacienteAbonoActual,
-            condicion_id: condicionId,
-            precio_total: parseFloat(precioTotal),
-            abono_inicial: parseFloat(abonoInicial) || 0,
-            estado: estado,
-            notas: notas
-        };
+async function guardarAbono() {
+    if (!pacienteAbonoActual) {
+        showAlert('Seleccione un paciente primero', 'error');
+        return;
+    }
+    
+    const condicionId = document.getElementById('condicionAbono').value;
+    // Usamos cleanNumber para quitar comas y símbolos
+    const precioTotal = cleanNumber(document.getElementById('precioTotalAbono').value);
+    const abonoInicial = cleanNumber(document.getElementById('abonoInicial').value);
+    const estado = document.getElementById('estadoAbono').value;
+    const notas = document.getElementById('notasAbono').value;
+    
+    if (!condicionId || !precioTotal) {
+        showAlert('Seleccione condición y precio', 'error');
+        return;
+    }
+    
+    const data = {
+        paciente_id: pacienteAbonoActual,
+        condicion_id: condicionId,
+        precio_total: precioTotal,
+        abono_inicial: abonoInicial,
+        estado: estado,
+        notas: notas
+    };
         
         try {
             const res = await fetch(`${API_URL}/api/abonos`, {
@@ -1888,73 +1923,72 @@ function seleccionarPacienteAbono(id, nombre) {
         }
     }
 
-    async function cargarAbonosPaciente(pacienteId) {
-        try {
-            const res = await fetch(`${API_URL}/api/abonos/paciente/${pacienteId}`);
-            const abonos = await res.json();
-            
-            const container = document.getElementById('tablaAbonosPaciente');
-            
-            if (abonos.length === 0) {
-                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Este paciente no tiene abonos registrados</p>';
-                document.getElementById('agregarPagoExtra').style.display = 'none';
-                actualizarTotales(0, 0, 0);
-                return;
-            }
-            
-            let totalDeuda = 0;
-            let totalAbonado = 0;
-            
-            container.innerHTML = abonos.map(a => {
-                totalDeuda += parseFloat(a.precio_total);
-                totalAbonado += parseFloat(a.total_abonado);
-                
-                const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
-                const estadoClass = a.estado === 'pagado' ? 'estado-pagado' : a.estado === 'abonado' ? 'estado-abonado' : 'estado-pendiente';
-                const estadoTexto = a.estado === 'pagado' ? '✅ Pagado' : a.estado === 'abonado' ? '💳 Abonado' : '⏳ Pendiente';
-                
-                return `
-                    <div class="abono-card" onclick="seleccionarAbonoParaPago(${a.id}, this)" style="cursor: pointer;">
-                        <div class="abono-header">
-                            <div class="abono-titulo">${a.condicion_nombre}</div>
-                            <span class="abono-estado ${estadoClass}">${estadoTexto}</span>
-                        </div>
-                        <div class="abono-detalles">
-                            <div class="abono-monto">
-                                <div class="abono-monto-label">Precio Total</div>
-                                <div class="abono-monto-valor" style="color: #333;">$${parseFloat(a.precio_total).toFixed(2)}</div>
-                            </div>
-                            <div class="abono-monto">
-                                <div class="abono-monto-label">Abonado</div>
-                                <div class="abono-monto-valor" style="color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</div>
-                            </div>
-                            <div class="abono-monto">
-                                <div class="abono-monto-label">Saldo</div>
-                                <div class="abono-monto-valor" style="color: #f44336;">$${(parseFloat(a.precio_total) - parseFloat(a.total_abonado)).toFixed(2)}</div>
-                            </div>
-                        </div>
-                        <div class="abono-progreso">
-                            <div class="barra-progreso">
-                                <div class="progreso-fill" style="width: ${porcentaje}%; background: ${porcentaje >= 100 ? '#4CAF50' : porcentaje > 0 ? '#FF9800' : '#e0e0e0'};"></div>
-                            </div>
-                            <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">${porcentaje.toFixed(0)}% pagado</div>
-                        </div>
-                        ${a.notas ? `<div style="margin-top: 10px; font-size: 13px; color: #666;"><strong>Notas:</strong> ${a.notas}</div>` : ''}
-                        <div style="margin-top: 10px; font-size: 12px; color: #999;">Fecha: ${new Date(a.fecha_registro).toLocaleDateString('es-ES')}</div>
-                    </div>
-                `;
-            }).join('');
-            
-            actualizarTotales(totalDeuda, totalAbonado, totalDeuda - totalAbonado);
-            
-            // Mostrar botón de pago adicional si hay abonos pendientes
-            const tienePendientes = abonos.some(a => a.estado !== 'pagado');
-            document.getElementById('agregarPagoExtra').style.display = tienePendientes ? 'block' : 'none';
-            
-        } catch (err) {
-            console.error('Error cargando abonos:', err);
+   async function cargarAbonosPaciente(pacienteId) {
+    try {
+        const res = await fetch(`${API_URL}/api/abonos/paciente/${pacienteId}`);
+        const abonos = await res.json();
+        
+        const container = document.getElementById('tablaAbonosPaciente');
+        
+        if (abonos.length === 0) {
+            container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Este paciente no tiene abonos registrados</p>';
+            document.getElementById('agregarPagoExtra').style.display = 'none';
+            actualizarTotales(0, 0, 0);
+            return;
         }
+        
+        let totalDeuda = 0;
+        let totalAbonado = 0;
+        
+        container.innerHTML = abonos.map(a => {
+            totalDeuda += parseFloat(a.precio_total);
+            totalAbonado += parseFloat(a.total_abonado);
+            
+            const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
+            const estadoClass = a.estado === 'pagado' ? 'estado-pagado' : a.estado === 'abonado' ? 'estado-abonado' : 'estado-pendiente';
+            const estadoTexto = a.estado === 'pagado' ? '✅ Pagado' : a.estado === 'abonado' ? '💳 Abonado' : '⏳ Pendiente';
+            
+            return `
+                <div class="abono-card" onclick="seleccionarAbonoParaPago(${a.id}, this)" style="cursor: pointer;">
+                    <div class="abono-header">
+                        <div class="abono-titulo">${a.condicion_nombre}</div>
+                        <span class="abono-estado ${estadoClass}">${estadoTexto}</span>
+                    </div>
+                    <div class="abono-detalles">
+                        <div class="abono-monto">
+                            <div class="abono-monto-label">Precio Total</div>
+                            <div class="abono-monto-valor" style="color: #333;">${formatMoney(a.precio_total)}</div>
+                        </div>
+                        <div class="abono-monto">
+                            <div class="abono-monto-label">Abonado</div>
+                            <div class="abono-monto-valor" style="color: #4CAF50;">${formatMoney(a.total_abonado)}</div>
+                        </div>
+                        <div class="abono-monto">
+                            <div class="abono-monto-label">Saldo</div>
+                            <div class="abono-monto-valor" style="color: #f44336;">${formatMoney(parseFloat(a.precio_total) - parseFloat(a.total_abonado))}</div>
+                        </div>
+                    </div>
+                    <div class="abono-progreso">
+                        <div class="barra-progreso">
+                            <div class="progreso-fill" style="width: ${porcentaje}%; background: ${porcentaje >= 100 ? '#4CAF50' : porcentaje > 0 ? '#FF9800' : '#e0e0e0'};"></div>
+                        </div>
+                        <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">${porcentaje.toFixed(0)}% pagado</div>
+                    </div>
+                    ${a.notas ? `<div style="margin-top: 10px; font-size: 13px; color: #666;"><strong>Notas:</strong> ${a.notas}</div>` : ''}
+                    <div style="margin-top: 10px; font-size: 12px; color: #999;">Fecha: ${formatDate(a.fecha_registro)}</div>
+                </div>
+            `;
+        }).join('');
+        
+        actualizarTotales(totalDeuda, totalAbonado, totalDeuda - totalAbonado);
+        
+        const tienePendientes = abonos.some(a => a.estado !== 'pagado');
+        document.getElementById('agregarPagoExtra').style.display = tienePendientes ? 'block' : 'none';
+        
+    } catch (err) {
+        console.error('Error cargando abonos:', err);
     }
+}
 
     function actualizarTotales(deuda, abonado, pendiente) {
         document.getElementById('totalDeudaPaciente').textContent = `$${deuda.toFixed(2)}`;
@@ -1990,18 +2024,20 @@ function seleccionarAbonoParaPago(abonoId, element) {
     }, 500);
 }
 
-    async function agregarPagoAdicional() {
-        if (!abonoSeleccionadoId) {
-            showAlert('Seleccione un abono de la lista haciendo clic en él', 'error');
-            return;
-        }
-        
-        const monto = document.getElementById('montoPagoExtra').value;
-        if (!monto || parseFloat(monto) <= 0) {
-            showAlert('Ingrese un monto válido', 'error');
-            return;
-        }
-        
+async function agregarPagoAdicional() {
+    if (!abonoSeleccionadoId) {
+        showAlert('⚠️ Primero haz clic en la tarjeta del tratamiento (arriba) que quieres pagar', 'error');
+        return;
+    }
+    
+    // Usamos cleanNumber aquí también
+    const monto = cleanNumber(document.getElementById('montoPagoExtra').value);
+    
+    if (!monto || monto <= 0) {
+        showAlert('Ingrese un monto válido mayor a 0', 'error');
+        return;
+    }
+    
         try {
             const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
                 method: 'POST',
@@ -2021,53 +2057,54 @@ function seleccionarAbonoParaPago(abonoId, element) {
     }
 
     // ========== RESUMEN GENERAL ==========
-    async function cargarResumenAbonos() {
-        try {
-            const res = await fetch(`${API_URL}/api/abonos/resumen`);
-            const data = await res.json();
-            
-            document.getElementById('totalPacientesConDeuda').textContent = data.pacientes_con_deuda;
-            document.getElementById('totalIngresosMes').textContent = `$${parseFloat(data.ingresos_mes).toFixed(2)}`;
-            document.getElementById('totalPorCobrar').textContent = `$${parseFloat(data.por_cobrar).toFixed(2)}`;
-            
-            // Lista general
-            const container = document.getElementById('listaGeneralAbonos');
-            if (data.abonos.length === 0) {
-                container.innerHTML = '<p style="color: #999; text-align: center;">No hay abonos registrados</p>';
-                return;
-            }
-            
-            container.innerHTML = `
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Paciente</th>
-                            <th>Condición</th>
-                            <th>Total</th>
-                            <th>Abonado</th>
-                            <th>Saldo</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.abonos.map(a => `
-                            <tr>
-                                <td><strong>${a.paciente_nombre}</strong></td>
-                                <td>${a.condicion_nombre}</td>
-                                <td>$${parseFloat(a.precio_total).toFixed(2)}</td>
-                                <td style="color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</td>
-                                <td style="color: ${a.saldo > 0 ? '#f44336' : '#4CAF50'};">$${parseFloat(a.saldo).toFixed(2)}</td>
-                                <td><span class="badge ${a.estado === 'pagado' ? 'badge-green' : a.estado === 'abonado' ? 'badge-blue' : 'badge-red'}">${a.estado}</span></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            
-        } catch (err) {
-            console.error('Error cargando resumen:', err);
+async function cargarResumenAbonos() {
+    try {
+        const res = await fetch(`${API_URL}/api/abonos/resumen`);
+        const data = await res.json();
+        
+        document.getElementById('totalPacientesConDeuda').textContent = data.pacientes_con_deuda;
+        document.getElementById('totalIngresosMes').textContent = formatMoney(data.ingresos_mes);
+        document.getElementById('totalPorCobrar').textContent = formatMoney(data.por_cobrar);
+        
+        const container = document.getElementById('listaGeneralAbonos');
+        if (data.abonos.length === 0) {
+            container.innerHTML = '<p style="color: #999; text-align: center;">No hay abonos registrados</p>';
+            return;
         }
+        
+        container.innerHTML = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Condición</th>
+                        <th>Total</th>
+                        <th>Abonado</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.abonos.map(a => `
+                        <tr>
+                            <td><strong>${a.paciente_nombre}</strong></td>
+                            <td>${a.condicion_nombre}</td>
+                            <td>${formatMoney(a.precio_total)}</td>
+                            <td style="color: #4CAF50;">${formatMoney(a.total_abonado)}</td>
+                            <td style="color: ${a.saldo > 0 ? '#f44336' : '#4CAF50'};">${formatMoney(a.saldo)}</td>
+                            <td><span class="badge ${a.estado === 'pagado' ? 'badge-green' : a.estado === 'abonado' ? 'badge-blue' : 'badge-red'}">${a.estado}</span></td>
+                            <td style="font-size: 0.85em;">${formatDate(a.fecha_registro)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        
+    } catch (err) {
+        console.error('Error cargando resumen:', err);
     }
-    </script>
+}
+</script>
 </body>
 </html>
