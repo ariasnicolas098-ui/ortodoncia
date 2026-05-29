@@ -1962,11 +1962,33 @@ function seleccionarPacienteAbono(id, nombre) {
         document.getElementById('saldoPendientePaciente').textContent = `$${pendiente.toFixed(2)}`;
     }
 
-    function seleccionarAbonoParaPago(abonoId) {
-        abonoSeleccionadoId = abonoId;
-        // Scroll al área de pago
-        document.getElementById('agregarPagoExtra').scrollIntoView({behavior: 'smooth'});
+function seleccionarAbonoParaPago(abonoId, element) {
+    abonoSeleccionadoId = abonoId;
+    
+    // 1. Quitar el resaltado de todas las tarjetas
+    document.querySelectorAll('.abono-card').forEach(card => {
+        card.style.borderColor = '#e0e0e0';
+        card.style.borderWidth = '2px';
+        card.style.boxShadow = 'none';
+        card.style.transform = 'scale(1)';
+    });
+    
+    // 2. Resaltar SOLO la tarjeta seleccionada
+    if (element) {
+        element.style.borderColor = '#4CAF50'; // Borde verde
+        element.style.borderWidth = '3px';
+        element.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
+        element.style.transform = 'scale(1.01)';
     }
+    
+    // 3. Scroll suave hacia la zona de pago
+    document.getElementById('agregarPagoExtra').scrollIntoView({behavior: 'smooth'});
+    
+    // 4. Enfocar el input de monto
+    setTimeout(() => {
+        document.getElementById('montoPagoExtra').focus();
+    }, 500);
+}
 
     async function agregarPagoAdicional() {
         if (!abonoSeleccionadoId) {
