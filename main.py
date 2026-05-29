@@ -343,7 +343,7 @@ def obtener_paciente(paciente_id):
     conn = get_db()
     cursor = db.get_cursor(conn)
     
-    # 1. Obtener datos básicos
+    # 1. Datos básicos
     execute_query(cursor, "SELECT * FROM pacientes WHERE id = ?", (paciente_id,))
     paciente = cursor.fetchone()
     
@@ -353,38 +353,25 @@ def obtener_paciente(paciente_id):
     
     p = dict(paciente)
     
-    # 2. Obtener historial odontológico
-    execute_query(cursor, """
-        SELECT * FROM historial_odontologico 
-        WHERE paciente_id = ? 
-        ORDER BY fecha_consulta DESC
-    """, (paciente_id,))
+    # 2. Historial
+    execute_query(cursor, "SELECT * FROM historial_odontologico WHERE paciente_id = ? ORDER BY fecha_consulta DESC", (paciente_id,))
     p['historial'] = [dict(h) for h in cursor.fetchall()]
     
-    # 3. Obtener archivos y agregar la URL completa
-    execute_query(cursor, """
-        SELECT * FROM archivos 
-        WHERE paciente_id = ? 
-        ORDER BY fecha_subida DESC
-    """, (paciente_id,))
-    
+    # 3. Archivos (IMPORTANTE: Aquí se genera la URL completa)
+    execute_query(cursor, "SELECT * FROM archivos WHERE paciente_id = ? ORDER BY fecha_subida DESC", (paciente_id,))
     archivos = []
     for row in cursor.fetchall():
         a = dict(row)
-        # Crear la URL completa para poder ver el archivo
-        a['url'] = f"/uploads/{a['ruta']}"
+        # Creamos la URL accesible desde la web
+        a['url'] = f"/uploads/{a['ruta']}" 
         archivos.append(a)
     p['archivos'] = archivos
     
-    # 4. Obtener citas
-    execute_query(cursor, """
-        SELECT * FROM citas 
-        WHERE paciente_id = ? 
-        ORDER BY fecha DESC, hora DESC
-    """, (paciente_id,))
+    # 4. Citas
+    execute_query(cursor, "SELECT * FROM citas WHERE paciente_id = ? ORDER BY fecha DESC, hora DESC", (paciente_id,))
     p['citas'] = [dict(c) for c in cursor.fetchall()]
     
-    # 5. Obtener abonos (para mostrar deudas en el perfil)
+    # 5. Abonos
     execute_query(cursor, """
         SELECT a.*, c.nombre as condicion_nombre
         FROM abonos a
@@ -396,6 +383,8 @@ def obtener_paciente(paciente_id):
     
     conn.close()
     return jsonify(p)
+
+
 @app.route('/api/consultas', methods=['POST'])
 def crear_consulta():
     data = request.get_json()
