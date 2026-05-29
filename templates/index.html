@@ -457,6 +457,41 @@
     font-weight: bold;
     margin-top: 5px;
 }
+        /* Visor de archivos integrado */
+.viewer-container {
+    margin-top: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 2px dashed #667eea;
+    border-radius: 12px;
+    display: none; /* Oculto por defecto */
+    animation: fadeIn 0.3s;
+}
+.viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+.viewer-title { font-weight: bold; color: #333; }
+.viewer-close {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.viewer-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+/* Optimización: las imágenes cargan solo cuando se ven */
+.file-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -492,6 +527,48 @@
         let recognition;
         let pacienteActual = null;
 
+        // 1. Formato de dinero con separadores de miles
+function formatMoney(amount) {
+    if (amount === null || amount === undefined) return '$0.00';
+    return '$' + parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// 2. Formato de fecha
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('es-ES');
+}
+
+// 3. Función para mostrar archivos DENTRO de la página (Visor)
+function mostrarVisor(url, tipo, nombre) {
+    const container = document.getElementById('viewer-container');
+    const content = document.getElementById('viewer-content');
+    const title = document.getElementById('viewer-title');
+    
+    title.textContent = nombre;
+    content.innerHTML = ''; // Limpiar
+
+    if (tipo === 'radiografia' || tipo === 'foto' || url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+        content.innerHTML = `<img src="${url}" alt="${nombre}" style="max-width:100%; border-radius:8px;">`;
+    } else if (tipo === 'pdf' || url.match(/\.pdf$/i)) {
+        content.innerHTML = `<embed src="${url}" type="application/pdf" width="100%" height="500px" />`;
+    } else {
+        content.innerHTML = `
+            <div style="text-align:center; padding:20px;">
+                <p>Este archivo no se puede previsualizar.</p>
+                <a href="${url}" download class="btn" style="background:#667eea; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">⬇️ Descargar Archivo</a>
+            </div>`;
+    }
+    
+    container.style.display = 'block';
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function cerrarVisor() {
+    document.getElementById('viewer-container').style.display = 'none';
+    document.getElementById('viewer-content').innerHTML = '';
+}
+        
         // ========== NUEVO: Precargar datos desde URL al iniciar ==========
         document.addEventListener('DOMContentLoaded', () => {
             // Verificar si venimos del panel de admin con datos precargados
@@ -645,52 +722,37 @@ async function verPaciente(id, nombre) {
     }
 }
 
-        function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
+function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
     pacienteActual = paciente;
     
-    const iconosArchivo = {
-        'radiografia': '🩻',
-        'foto': '📷',
-        'documento': '📄',
-        'pdf': '📑',
-        'otro': '📎'
-    };
+    // 1. Definir el contenedor del visor (debe ir dentro del HTML principal)
+    const viewerHtml = `
+        <div id="viewer-container" class="viewer-container">
+            <div class="viewer-header">
+                <span id="viewer-title" class="viewer-title">Archivo</span>
+                <button class="viewer-close" onclick="cerrarVisor()">✖ Cerrar</button>
+            </div>
+            <div id="viewer-content" class="viewer-content"></div>
+        </div>
+    `;
 
-    // ========== ARCHIVOS ==========
+    // 2. Generar HTML de Archivos
     let archivosHtml = '';
     if (archivos.length === 0) {
         archivosHtml = '<div class="no-files">Este paciente no tiene archivos adjuntos</div>';
     } else {
         archivosHtml = `
             <div class="files-grid">
-                ${archivos.map(a => `
-                    <div class="file-item" onclick="verArchivo('${a.url}')">
-                        <div class="file-icon">${iconosArchivo[a.tipo] || '📎'}</div>
-                        <div class="file-name">${a.descripcion || a.nombre}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
-
-    // ========== CITAS ==========
-    let citasHtml = '';
-    if (citas.length === 0) {
-        citasHtml = '<p style="color: #999; text-align: center; padding: 20px;">No tiene citas registradas</p>';
-    } else {
-        citasHtml = `
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                ${citas.map(c => {
-                    const fecha = new Date(c.fecha).toLocaleDateString('es-ES');
-                    const estadoColor = c.estado === 'programada' ? '#4CAF50' : c.estado === 'completada' ? '#2196F3' : '#f44336';
-                    const estadoIcono = c.estado === 'programada' ? '📅' : c.estado === 'completada' ? '✅' : '❌';
+                ${archivos.map(a => {
+                    // Iconos según tipo
+                    const iconos = { 'radiografia': '🩻', 'foto': '📷', 'documento': '📄', 'pdf': '📑' };
+                    const icon = iconos[a.tipo] || '📎';
+                    const isImg = a.tipo === 'radiografia' || a.tipo === 'foto';
+                    
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${estadoColor};">
-                            <div>
-                                <div style="font-weight: 600; color: #333;">${estadoIcono} ${fecha} - ${c.hora}</div>
-                                <div style="font-size: 13px; color: #666;">${c.motivo || 'Consulta general'}</div>
-                            </div>
-                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; background: ${estadoColor}20; color: ${estadoColor}; text-transform: uppercase;">${c.estado}</span>
+                        <div class="file-item" onclick="mostrarVisor('${a.url}', '${a.tipo}', '${a.nombre}')">
+                            <div class="file-icon">${icon}</div>
+                            <div class="file-name">${a.descripcion || a.nombre}</div>
                         </div>
                     `;
                 }).join('')}
@@ -698,49 +760,37 @@ async function verPaciente(id, nombre) {
         `;
     }
 
-    // ========== ABONOS ==========
-    let abonosHtml = '';
+    // 3. Generar HTML de Abonos (CON SEPARADORES DE MILES)
     let totalDeuda = 0;
     let totalAbonado = 0;
     
+    let abonosHtml = '';
     if (abonos.length === 0) {
         abonosHtml = '<p style="color: #999; text-align: center; padding: 20px;">No tiene abonos registrados</p>';
     } else {
         abonosHtml = `
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 ${abonos.map(a => {
-                    // Dentro del mapeo de abonos
-                    totalDeuda += parseFloat(a.precio_total) || 0;
-                    totalAbonado += parseFloat(a.total_abonado) || 0;
+                    totalDeuda += parseFloat(a.precio_total);
+                    totalAbonado += parseFloat(a.total_abonado);
                     const saldo = parseFloat(a.precio_total) - parseFloat(a.total_abonado);
                     const porcentaje = a.precio_total > 0 ? (a.total_abonado / a.precio_total * 100) : 0;
                     const estadoColor = a.estado === 'pagado' ? '#4CAF50' : a.estado === 'abonado' ? '#FF9800' : '#f44336';
                     
                     return `
-                        <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px solid ${estadoColor}30;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div style="font-weight: 600; color: #333; font-size: 1.05em;">${a.condicion_nombre}</div>
-                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${estadoColor}20; color: ${estadoColor}; font-weight: 600;">${a.estado.toUpperCase()}</span>
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid ${estadoColor};">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-weight: 600;">${a.condicion_nombre}</span>
+                                <span style="color: ${estadoColor}; text-transform: uppercase; font-size: 0.8em;">${a.estado}</span>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Total</div>
-                                    <div style="font-weight: bold; color: #333;">$${parseFloat(a.precio_total).toFixed(2)}</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Abonado</div>
-                                    <div style="font-weight: bold; color: #4CAF50;">$${parseFloat(a.total_abonado).toFixed(2)}</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #666; text-transform: uppercase;">Saldo</div>
-                                    <div style="font-weight: bold; color: ${saldo > 0 ? '#f44336' : '#4CAF50'};">$${saldo.toFixed(2)}</div>
-                                </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                                <div>Total: <strong>${formatMoney(a.precio_total)}</strong></div>
+                                <div>Abonado: <strong style="color:#4CAF50;">${formatMoney(a.total_abonado)}</strong></div>
+                                <div>Saldo: <strong style="color:${saldo > 0 ? '#f44336' : '#333'};">${formatMoney(saldo)}</strong></div>
                             </div>
-                            <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
-                                <div style="width: ${porcentaje}%; height: 100%; background: ${estadoColor}; border-radius: 4px; transition: width 0.5s;"></div>
+                            <div style="margin-top:8px; height:6px; background:#e0e0e0; border-radius:3px;">
+                                <div style="width:${porcentaje}%; height:100%; background:${estadoColor}; border-radius:3px;"></div>
                             </div>
-                            <div style="text-align: right; font-size: 11px; color: #666; margin-top: 4px;">${porcentaje.toFixed(0)}% pagado</div>
-                            ${a.notas ? `<div style="margin-top: 8px; font-size: 12px; color: #666; font-style: italic;">📝 ${a.notas}</div>` : ''}
                         </div>
                     `;
                 }).join('')}
@@ -748,90 +798,53 @@ async function verPaciente(id, nombre) {
         `;
     }
 
-    // ========== RESUMEN FINANCIERO ==========
+    // Resumen Financiero
     const saldoPendiente = totalDeuda - totalAbonado;
-    const resumenFinanciero = abonos.length > 0 ? `
-        <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
-            <h4 style="margin-bottom: 15px; font-size: 1.1em;">💰 Resumen Financiero</h4>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
-                <div>
-                    <div style="font-size: 12px; opacity: 0.9;">Total Deuda</div>
-                    <div style="font-size: 1.4em; font-weight: bold;">$${totalDeuda.toFixed(2)}</div>
-                </div>
-                <div>
-                    <div style="font-size: 12px; opacity: 0.9;">Total Abonado</div>
-                    <div style="font-size: 1.4em; font-weight: bold;">$${totalAbonado.toFixed(2)}</div>
-                </div>
-                <div>
-                    <div style="font-size: 12px; opacity: 0.9;">Saldo Pendiente</div>
-                    <div style="font-size: 1.4em; font-weight: bold; color: ${saldoPendiente > 0 ? '#FFD700' : '#90EE90'};">$${saldoPendiente.toFixed(2)}</div>
-                </div>
+    const resumenHtml = `
+        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;">
+            <div>
+                <div style="font-size: 0.8em; opacity: 0.9;">Total Deuda</div>
+                <div style="font-size: 1.2em; font-weight: bold;">${formatMoney(totalDeuda)}</div>
+            </div>
+            <div>
+                <div style="font-size: 0.8em; opacity: 0.9;">Total Abonado</div>
+                <div style="font-size: 1.2em; font-weight: bold;">${formatMoney(totalAbonado)}</div>
+            </div>
+            <div>
+                <div style="font-size: 0.8em; opacity: 0.9;">Saldo Pendiente</div>
+                <div style="font-size: 1.2em; font-weight: bold; color: ${saldoPendiente > 0 ? '#FFD700' : '#90EE90'};">${formatMoney(saldoPendiente)}</div>
             </div>
         </div>
-    ` : '';
+    `;
 
-    // ========== HTML COMPLETO ==========
+    // 4. Renderizar todo
     document.getElementById('resultados').innerHTML = `
         <div class="patient-card">
             <div class="patient-header">
                 <div class="patient-title">
                     <h2>${paciente.nombre_completo}</h2>
-                    <div class="patient-id">ID: ${paciente.id} | Registrado: ${new Date(paciente.fecha_registro).toLocaleDateString('es-ES')}</div>
+                    <div class="patient-id">ID: ${paciente.id} | Registrado: ${formatDate(paciente.fecha_registro)}</div>
                 </div>
             </div>
             
             <div class="patient-grid">
-                <div class="info-item">
-                    <div class="info-label">DNI / Documento</div>
-                    <div class="info-value">${paciente.dni || 'No registrado'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Teléfono</div>
-                    <div class="info-value">${paciente.telefono || 'No registrado'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Email</div>
-                    <div class="info-value">${paciente.email || 'No registrado'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Fecha de Nacimiento</div>
-                    <div class="info-value">${paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No registrada'}</div>
-                </div>
-                <div class="info-item" style="grid-column: 1 / -1;">
-                    <div class="info-label">Dirección</div>
-                    <div class="info-value">${paciente.direccion || 'No registrada'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Alergias</div>
-                    <div class="info-value">${paciente.alergias || 'Ninguna'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Medicamentos Actuales</div>
-                    <div class="info-value">${paciente.medicamentos_actuales || 'Ninguno'}</div>
-                </div>
-                <div class="info-item" style="grid-column: 1 / -1;">
-                    <div class="info-label">Condiciones Médicas</div>
-                    <div class="info-value">${paciente.condiciones_medicas || 'Ninguna'}</div>
-                </div>
+                <div class="info-item"><div class="info-label">DNI</div><div class="info-value">${paciente.dni || '-'}</div></div>
+                <div class="info-item"><div class="info-label">Teléfono</div><div class="info-value">${paciente.telefono || '-'}</div></div>
+                <div class="info-item"><div class="info-label">Email</div><div class="info-value">${paciente.email || '-'}</div></div>
+                <div class="info-item"><div class="info-label">Alergias</div><div class="info-value" style="color:#f44336;">${paciente.alergias || 'Ninguna'}</div></div>
             </div>
 
-            <!-- SECCIÓN DE CITAS -->
             <div class="archivos-section">
-                <div class="archivos-title">📅 Citas (${citas.length})</div>
-                ${citasHtml}
-            </div>
-
-            <!-- SECCIÓN DE ABONOS -->
-            <div class="archivos-section">
-                <div class="archivos-title">💳 Abonos y Pagos (${abonos.length})</div>
+                <div class="archivos-title">💰 Abonos y Pagos (${abonos.length})</div>
                 ${abonosHtml}
-                ${resumenFinanciero}
+                ${resumenHtml}
             </div>
 
-            <!-- SECCIÓN DE ARCHIVOS -->
             <div class="archivos-section">
                 <div class="archivos-title">📎 Archivos y Documentos (${archivos.length})</div>
                 ${archivosHtml}
+                <!-- AQUÍ SE MOSTRARÁ EL ARCHIVO SELECCIONADO -->
+                ${viewerHtml}
             </div>
         </div>
     `;
