@@ -733,14 +733,88 @@
             border-radius: 5px;
             transition: width 0.5s;
         }
+         /* ===== ESTILOS PAPELERA ===== */
+        .papelera-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .papelera-btn:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+        .papelera-contador {
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .modal-papelera {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-papelera-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .cerrar-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+        }
+        .cerrar-modal:hover { color: #f44336; }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <h1>🦷 Panel de Administración</h1>
         <div class="nav-links">
-        <a href="https://ortodoncia-production.up.railway.app">🔍 Buscador</a>
-        <a href="https://ortodoncia-production.up.railway.app/admin" class="active">⚙️ Administración</a>
+            <a href="https://ortodoncia-production.up.railway.app">🔍 Buscador</a>
+            <a href="https://ortodoncia-production.up.railway.app/admin" class="active">⚙️ Administración</a>
+            <button class="papelera-btn" onclick="verPapelera()" title="Ver papelera">
+                🗑️ Papelera <span class="papelera-contador" id="countPapelera">0</span>
+            </button>
         </div>
     </nav>
 
@@ -1212,7 +1286,22 @@
             </div>
         </div>
     </div>
-
+        <!-- MODAL PAPELERA -->
+    <div id="modalPapelera" class="modal-papelera" onclick="if(event.target===this)cerrarPapelera()">
+        <div class="modal-papelera-content">
+            <div class="modal-header">
+                <h2>🗑️ Papelera de Pacientes</h2>
+                <button class="cerrar-modal" onclick="cerrarPapelera()">&times;</button>
+            </div>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Los pacientes en la papelera se pueden restaurar o eliminar permanentemente.
+            </p>
+            <div id="listaPapelera">
+                <p style="text-align:center; color:#999;">Cargando...</p>
+            </div>
+        </div>
+    </div>
+    
     <script>
         const API_URL = "https://ortodoncia-production.up.railway.app";
         let pacientesCache = [];
@@ -1269,6 +1358,9 @@ function cleanNumber(value) {
             // Inicializar sistema de abonos
             cargarCondiciones();
             cargarResumenAbonos();
+            
+            // NUEVO: Cargar contador de papelera
+            cargarContadorPapelera();
         });
 
         function showTab(tabId) {
@@ -1328,7 +1420,7 @@ function cleanNumber(value) {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                if (res.ok) {
+                 if (res.ok) {
                     showAlert('Paciente registrado correctamente');
                     document.getElementById('formPaciente').reset();
                     cargarEstadisticas();
@@ -1476,16 +1568,116 @@ function cleanNumber(value) {
     const nombreCodificado = encodeURIComponent(nombre);
     window.location.href = `https://ortodoncia-production.up.railway.app/?paciente_id=${id}&nombre=${nombreCodificado}`; }
 
+        // ========== PAPELERA (SOFT DELETE) ==========
+        
+        async function cargarContadorPapelera() {
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes/eliminados`);
+                const data = await res.json();
+                document.getElementById('countPapelera').textContent = data.length;
+            } catch(e) { console.error('Error cargando contador papelera:', e); }
+        }
+
+        async function verPapelera() {
+            const modal = document.getElementById('modalPapelera');
+            const lista = document.getElementById('listaPapelera');
+            
+            lista.innerHTML = '<p style="text-align:center; padding:20px;">Cargando...</p>';
+            modal.style.display = 'flex';
+            
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes/eliminados`);
+                const data = await res.json();
+                
+                if (data.length === 0) {
+                    lista.innerHTML = '<p style="text-align:center; color:#999; padding:30px;">🗑️ La papelera está vacía.</p>';
+                    return;
+                }
+                
+                lista.innerHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr><th>Nombre</th><th>Teléfono</th><th>Eliminado el</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(p => `
+                                <tr>
+                                    <td><strong>${p.nombre_completo}</strong></td>
+                                    <td>${p.telefono || '-'}</td>
+                                    <td style="font-size:0.85em; color:#666;">${new Date(p.deleted_at).toLocaleDateString('es-ES')}</td>
+                                    <td>
+                                        <button onclick="restaurarPaciente(${p.id})" class="btn btn-success btn-small">♻️ Restaurar</button>
+                                        <button onclick="eliminarParaSiempre(${p.id})" class="btn btn-danger btn-small" style="margin-left:5px;">❌ Borrar Definitivo</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch(e) {
+                lista.innerHTML = '<p style="color:red; text-align:center; padding:20px;">❌ Error al cargar papelera</p>';
+            }
+        }
+
+        function cerrarPapelera() {
+            document.getElementById('modalPapelera').style.display = 'none';
+        }
+
+        async function restaurarPaciente(id) {
+            if(!confirm('¿Restaurar a este paciente? Volverá a la lista principal.')) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes/${id}/restaurar`, { method: 'POST' });
+                if (res.ok) {
+                    showAlert('✅ Paciente restaurado correctamente');
+                    verPapelera();
+                    cargarPacientes();
+                    cargarContadorPapelera();
+                } else {
+                    const err = await res.json();
+                    showAlert('Error: ' + (err.error || 'No se pudo restaurar'), 'error');
+                }
+            } catch(e) { 
+                showAlert('Error de conexión al restaurar', 'error'); 
+            }
+        }
+
+        async function eliminarParaSiempre(id) {
+            if(!confirm('⚠️ ADVERTENCIA: Esto borrará al paciente PARA SIEMPRE.\n\n¿Estás MUY seguro?')) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/pacientes/${id}/permanente`, { method: 'DELETE' });
+                if (res.ok) {
+                    showAlert('🗑️ Paciente eliminado permanentemente');
+                    verPapelera();
+                    cargarContadorPapelera();
+                } else {
+                    const err = await res.json();
+                    showAlert('Error: ' + (err.error || 'No se pudo eliminar'), 'error');
+                }
+            } catch(e) { 
+                showAlert('Error de conexión al eliminar', 'error'); 
+            }
+        }
+
+        // MODIFICADA: Ahora envía a papelera (soft delete)
         async function eliminarPaciente(id) {
-            if (!confirm('¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer y eliminará también todos sus archivos asociados.')) return;
+            if (!confirm('¿Enviar a este paciente a la papelera? Podrás restaurarlo después.')) return;
+            
             try {
                 const res = await fetch(`${API_URL}/api/pacientes/${id}`, { method: 'DELETE' });
                 if (res.ok) {
-                    showAlert('Paciente eliminado correctamente');
+                    showAlert('🗑️ Paciente movido a la papelera');
                     cargarPacientes(document.getElementById('buscarLista').value);
                     cargarEstadisticas();
-                } else { const error = await res.json(); showAlert(error.error || 'No se pudo eliminar el paciente', 'error'); }
-            } catch (err) { showAlert('Error de conexión al eliminar', 'error'); }
+                    cargarContadorPapelera();
+                } else { 
+                    const error = await res.json(); 
+                    showAlert(error.error || 'No se pudo mover a papelera', 'error'); 
+                }
+            } catch (err) { 
+                showAlert('Error de conexión', 'error'); 
+            }
         }
 
         // ===== FUNCIONES PARA SUBIR ARCHIVOS =====
