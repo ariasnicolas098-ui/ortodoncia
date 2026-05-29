@@ -777,27 +777,34 @@ def agregar_pago(abono_id):
     cursor = db.get_cursor(conn)
     
     try:
+        # 1. Insertar el nuevo pago
         execute_query(cursor, '''
             INSERT INTO pagos (abono_id, monto) VALUES (?, ?)
         ''', (abono_id, data['monto']))
         
+        # 2. Calcular el total abonado hasta ahora
         execute_query(cursor, '''
             SELECT COALESCE(SUM(monto), 0) as total FROM pagos WHERE abono_id = ?
         ''', (abono_id,))
         
         total_abonado = cursor.fetchone()
+        # CORRECCIÓN IMPORTANTE para PostgreSQL
         total_abonado = total_abonado['total'] if isinstance(total_abonado, dict) else total_abonado[0]
         
+        # 3. Obtener el precio total para comparar
         execute_query(cursor, 'SELECT precio_total FROM abonos WHERE id = ?', (abono_id,))
         precio_total = cursor.fetchone()
+        # CORRECCIÓN IMPORTANTE para PostgreSQL
         precio_total = precio_total['precio_total'] if isinstance(precio_total, dict) else precio_total[0]
         
+        # 4. Determinar el nuevo estado
         estado = 'pendiente'
         if total_abonado >= precio_total:
             estado = 'pagado'
         elif total_abonado > 0:
             estado = 'abonado'
         
+        # 5. Actualizar el abono
         execute_query(cursor, '''
             UPDATE abonos SET total_abonado = ?, estado = ? WHERE id = ?
         ''', (total_abonado, estado, abono_id))
