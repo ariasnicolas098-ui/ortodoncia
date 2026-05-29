@@ -834,18 +834,40 @@ def modificar_condicion(id):
     
     if request.method == 'PUT':
         data = request.get_json()
-        execute_query(cursor, '''
-            UPDATE condiciones SET nombre = ?, precio = ? WHERE id = ?
-        ''', (data['nombre'], data['precio'], id))
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True})
+        try:
+            execute_query(cursor, '''
+                UPDATE condiciones SET nombre = ?, precio = ? WHERE id = ?
+            ''', (data['nombre'], data['precio'], id))
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True})
+        except Exception as e:
+            conn.close()
+            return jsonify({'error': str(e)}), 400
     
-    else:
-        execute_query(cursor, 'DELETE FROM condiciones WHERE id = ?', (id,))
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True})
+    else:  # DELETE
+        try:
+            # Primero verificar si hay abonos usando esta condición
+            execute_query(cursor, 'SELECT COUNT(*) as total FROM abonos WHERE condicion_id = ?', (id,))
+            count = cursor.fetchone()
+            count = count['total'] if isinstance(count, dict) else count[0]
+            
+            if int(count) > 0:
+                conn.close()
+                return jsonify({
+                    'error': 'No se puede eliminar esta condición porque está siendo usada por ' + str(count) + ' abono(s). Elimina los abonos primero o cambia la condición.'
+                }), 409
+            
+            execute_query(cursor, 'DELETE FROM condiciones WHERE id = ?', (id,))
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True, 'message': 'Condición eliminada'})
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            print(f"❌ Error eliminando condición: {e}")
+            return jsonify({'error': str(e)}), 500
 
 # ========== API: ABONOS ==========
 @app.route('/api/abonos', methods=['POST'])
