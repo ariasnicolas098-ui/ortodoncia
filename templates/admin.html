@@ -1914,7 +1914,7 @@ function seleccionarPacienteAbono(id, nombre) {
                 const estadoTexto = a.estado === 'pagado' ? '✅ Pagado' : a.estado === 'abonado' ? '💳 Abonado' : '⏳ Pendiente';
                 
                 return `
-                    <div class="abono-card" onclick="seleccionarAbonoParaPago(${a.id})" style="cursor: pointer;">
+                    <div class="abono-card" onclick="seleccionarAbonoParaPago(${a.id}, this)" style="cursor: pointer;">
                         <div class="abono-header">
                             <div class="abono-titulo">${a.condicion_nombre}</div>
                             <span class="abono-estado ${estadoClass}">${estadoTexto}</span>
