@@ -1805,15 +1805,17 @@ function cleanNumber(value) {
                 const container = document.getElementById('listaArchivosPaciente');
                 if (archivos.length === 0) { container.innerHTML = '<p style="color: #999;">Este paciente no tiene archivos registrados</p>'; return; }
                 container.innerHTML = archivos.map(a => {
+                    // CORREGIDO: Construir URL correctamente
+                    const fileUrl = a.url ? a.url : (a.ruta ? `/uploads/${a.ruta}` : '');
                     const esImagen = a.tipo === 'radiografia' || a.tipo === 'foto';
-                    const preview = esImagen ? `<img src="${a.url}" class="file-image-preview" onclick="verArchivo('${a.url}')" alt="${a.descripcion}">` : `<div class="file-icon-big">${getFileIcon(a.tipo)}</div>`;
+                    const preview = esImagen ? `<img src="${fileUrl}" class="file-image-preview" onclick="verArchivo('${fileUrl}')" alt="${a.descripcion || a.nombre}">` : `<div class="file-icon-big">${getFileIcon(a.tipo)}</div>`;
                     return `
                         <div class="file-card">
                             ${preview}
                             <div class="file-name">${a.descripcion || a.nombre}</div>
                             <div class="file-meta">${formatearFecha(a.fecha_subida)} • ${(a.size / 1024).toFixed(1)} KB</div>
                             <div class="file-actions">
-                                <button class="btn btn-primary btn-xs" onclick="verArchivo('${a.url}')">👁️ Ver</button>
+                                <button class="btn btn-primary btn-xs" onclick="verArchivo('${fileUrl}')">👁️ Ver</button>
                                 <button class="btn btn-danger btn-xs" onclick="eliminarArchivo(${a.id}, ${pacienteId})">🗑️</button>
                             </div>
                         </div>
