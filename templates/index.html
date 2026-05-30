@@ -545,18 +545,30 @@ function mostrarVisor(url, tipo, nombre) {
     const content = document.getElementById('viewer-content');
     const title = document.getElementById('viewer-title');
     
+    // CORREGIDO: Asegurar URL completa
+    let fullUrl = url;
+    if (!url.startsWith('http') && !url.startsWith('/')) {
+        fullUrl = '/uploads/' + url;
+    } else if (!url.startsWith('http')) {
+        fullUrl = url;
+    }
+    
     title.textContent = nombre;
-    content.innerHTML = ''; // Limpiar
+    content.innerHTML = '';
 
-    if (tipo === 'radiografia' || tipo === 'foto' || url.match(/\.(jpg|jpeg|png|gif)$/i)) {
-        content.innerHTML = `<img src="${url}" alt="${nombre}" style="max-width:100%; border-radius:8px;">`;
+    if (tipo === 'radiografia' || tipo === 'foto' || url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
+        content.innerHTML = `<img src="${fullUrl}" alt="${nombre}" style="max-width:100%; border-radius:8px;" onerror="this.parentElement.innerHTML='<p style=\\'color:red; padding:20px;\\'>❌ Error al cargar imagen. URL: ${fullUrl}</p>'">`;
     } else if (tipo === 'pdf' || url.match(/\.pdf$/i)) {
-        content.innerHTML = `<embed src="${url}" type="application/pdf" width="100%" height="500px" />`;
+        content.innerHTML = `
+            <embed src="${fullUrl}" type="application/pdf" width="100%" height="600px" style="border-radius:8px;" />
+            <p style="text-align:center; margin-top:10px;">
+                <a href="${fullUrl}" target="_blank" style="color:#667eea; text-decoration:underline;">📑 Abrir PDF en nueva pestaña</a>
+            </p>`;
     } else {
         content.innerHTML = `
             <div style="text-align:center; padding:20px;">
                 <p>Este archivo no se puede previsualizar.</p>
-                <a href="${url}" download class="btn" style="background:#667eea; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">⬇️ Descargar Archivo</a>
+                <a href="${fullUrl}" download style="background:#667eea; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; display:inline-block;">⬇️ Descargar Archivo</a>
             </div>`;
     }
     
@@ -743,13 +755,18 @@ function mostrarDetallePaciente(paciente, archivos, citas = [], abonos = []) {
     } else {
         archivosHtml = `
             <div class="files-grid">
-                ${archivos.map(a => {
+                                ${archivos.map(a => {
                     const iconos = { 'radiografia': '🩻', 'foto': '📷', 'documento': '📄', 'pdf': '📑' };
                     const icon = iconos[a.tipo] || '📎';
+                    
+                    // CORREGIDO: Construir URL correctamente
+                    const fileUrl = a.url ? a.url : (a.ruta ? `/uploads/${a.ruta}` : '');
+                    const fileName = a.descripcion || a.nombre || 'Archivo';
+                    
                     return `
-                        <div class="file-item" onclick="mostrarVisor('${a.url}', '${a.tipo}', '${a.nombre}')">
+                        <div class="file-item" onclick="mostrarVisor('${fileUrl}', '${a.tipo}', '${fileName.replace(/'/g, "\\'")}')">
                             <div class="file-icon">${icon}</div>
-                            <div class="file-name">${a.descripcion || a.nombre}</div>
+                            <div class="file-name">${fileName}</div>
                         </div>
                     `;
                 }).join('')}
