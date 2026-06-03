@@ -815,6 +815,9 @@
             <button class="papelera-btn" onclick="verPapelera()" title="Ver papelera">
                 🗑️ Papelera <span class="papelera-contador" id="countPapelera">0</span>
             </button>
+            <button onclick="cerrarSesion()" style="background:#f44336; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-size:14px;">
+                🚪 Cerrar Sesión
+            </button>
         </div>
     </nav>
 
@@ -1303,7 +1306,64 @@
     </div>
     
     <script>
-        const API_URL = "https://ortodoncia-production.up.railway.app";
+const API_URL = "https://ortodoncia-production.up.railway.app";
+        
+        // ========== SISTEMA DE AUTENTICACIÓN JWT ==========
+        
+        // Obtener token del localStorage
+        function getToken() {
+            return localStorage.getItem('auth_token');
+        }
+
+        // Verificar autenticación al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = getToken();
+            if (!token) {
+                // No hay token, redirigir a login
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Si hay token, cargar datos normales
+            cargarEstadisticas();
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha_consulta').min = hoy;
+            document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
+            document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
+            cargarPacientes();
+            cargarCondiciones();
+            cargarResumenAbonos();
+            cargarContadorPapelera();
+        });
+
+        // Función fetch con token automático
+        async function apiFetch(url, options = {}) {
+            const token = getToken();
+            
+            // Si no hay token, redirigir a login
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Agregar headers de autenticación
+            if (!options.headers) options.headers = {};
+            options.headers['X-Auth-Token'] = token;
+            
+            const response = await apiFetch(url, options);
+            
+            // Si el token expiró o es inválido
+            if (response.status === 401) {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login';
+                return;
+            }
+            
+            return response;
+        }
+
+        // ========== FIN SISTEMA DE AUTENTICACIÓN ==========
+        
         let pacientesCache = [];
         let pacienteSeleccionado = null;
         let citaSeleccionada = null;
@@ -1346,22 +1406,6 @@ function cleanNumber(value) {
     if (!value) return 0;
     return parseFloat(String(value).replace(/[^0-9.]/g, ''));
 }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarEstadisticas();
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('fecha_consulta').min = hoy;
-            document.getElementById('formPaciente').addEventListener('submit', guardarPaciente);
-            document.getElementById('formConsulta').addEventListener('submit', guardarConsulta);
-            cargarPacientes();
-            
-            // Inicializar sistema de abonos
-            cargarCondiciones();
-            cargarResumenAbonos();
-            
-            // NUEVO: Cargar contador de papelera
-            cargarContadorPapelera();
-        });
 
         function showTab(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1415,7 +1459,7 @@ function cleanNumber(value) {
                 condiciones_medicas: document.getElementById('condiciones').value || 'Ninguna'
             };
             try {
-                const res = await fetch(`${API_URL}/api/pacientes`, {
+                const res = await apiFetch(`${API_URL}/api/pacientes`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -1434,7 +1478,7 @@ function cleanNumber(value) {
                 return;
             }
             try {
-                const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+                const res = await apiFetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
                 const lista = document.getElementById('listaPacientes');
                 if (pacientes.length === 0) {
@@ -1464,7 +1508,7 @@ function cleanNumber(value) {
             const fecha = document.getElementById('fecha_consulta')?.value;
             if (!fecha) return;
             try {
-                const res = await fetch(`${API_URL}/api/citas/disponibles?fecha=${fecha}`);
+                const res = await apiFetch(`${API_URL}/api/citas/disponibles?fecha=${fecha}`);
                 const horarios = await res.json();
                 const container = document.getElementById('horariosContainer');
                 container.innerHTML = horarios.map(h => `
@@ -1502,13 +1546,13 @@ function cleanNumber(value) {
                 odontologo: document.getElementById('odontologo').value
             };
             try {
-                const resCita = await fetch(`${API_URL}/api/citas`, {
+                const resCita = await apiFetch(`${API_URL}/api/citas`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ paciente_id: data.paciente_id, fecha: data.fecha_consulta, hora: data.hora_consulta, motivo: data.motivo_consulta })
                 });
                 if (!resCita.ok) { const error = await resCita.json(); throw new Error(error.error || 'Error al crear cita'); }
-                const resConsulta = await fetch(`${API_URL}/api/consultas`, {
+                const resConsulta = await apiFetch(`${API_URL}/api/consultas`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
@@ -1529,7 +1573,7 @@ function cleanNumber(value) {
 
         async function cargarEstadisticas() {
             try {
-                const res = await fetch(`${API_URL}/api/estadisticas`);
+                const res = await apiFetch(`${API_URL}/api/estadisticas`);
                 const data = await res.json();
                 document.getElementById('totalPacientes').textContent = data.total_pacientes;
                 document.getElementById('totalConsultas').textContent = data.consultas_mes;
@@ -1539,7 +1583,7 @@ function cleanNumber(value) {
 
         async function cargarPacientes(filtro = '') {
             try {
-                const res = await fetch(`${API_URL}/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
+                const res = await apiFetch(`${API_URL}/api/pacientes?filtro=${encodeURIComponent(filtro)}`);
                 const pacientes = await res.json();
                 const tbody = document.getElementById('tablaPacientes');
                 if (pacientes.length === 0) {
@@ -1572,7 +1616,7 @@ function cleanNumber(value) {
         
         async function cargarContadorPapelera() {
             try {
-                const res = await fetch(`${API_URL}/api/pacientes/eliminados`);
+                const res = await apiFetch(`${API_URL}/api/pacientes/eliminados`);
                 const data = await res.json();
                 document.getElementById('countPapelera').textContent = data.length;
             } catch(e) { console.error('Error cargando contador papelera:', e); }
@@ -1586,7 +1630,7 @@ function cleanNumber(value) {
             modal.style.display = 'flex';
             
             try {
-                const res = await fetch(`${API_URL}/api/pacientes/eliminados`);
+                const res = await apiFetch(`${API_URL}/api/pacientes/eliminados`);
                 const data = await res.json();
                 
                 if (data.length === 0) {
@@ -1627,7 +1671,7 @@ function cleanNumber(value) {
             if(!confirm('¿Restaurar a este paciente? Volverá a la lista principal.')) return;
             
             try {
-                const res = await fetch(`${API_URL}/api/pacientes/${id}/restaurar`, { method: 'POST' });
+                const res = await apiFetch(`${API_URL}/api/pacientes/${id}/restaurar`, { method: 'POST' });
                 if (res.ok) {
                     showAlert('✅ Paciente restaurado correctamente');
                     verPapelera();
@@ -1646,7 +1690,7 @@ function cleanNumber(value) {
             if(!confirm('⚠️ ADVERTENCIA: Esto borrará al paciente PARA SIEMPRE.\n\n¿Estás MUY seguro?')) return;
             
             try {
-                const res = await fetch(`${API_URL}/api/pacientes/${id}/permanente`, { method: 'DELETE' });
+                const res = await apiFetch(`${API_URL}/api/pacientes/${id}/permanente`, { method: 'DELETE' });
                 if (res.ok) {
                     showAlert('🗑️ Paciente eliminado permanentemente');
                     verPapelera();
@@ -1665,7 +1709,7 @@ function cleanNumber(value) {
             if (!confirm('¿Enviar a este paciente a la papelera? Podrás restaurarlo después.')) return;
             
             try {
-                const res = await fetch(`${API_URL}/api/pacientes/${id}`, { method: 'DELETE' });
+                const res = await apiFetch(`${API_URL}/api/pacientes/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                     showAlert('🗑️ Paciente movido a la papelera');
                     cargarPacientes(document.getElementById('buscarLista').value);
@@ -1687,7 +1731,7 @@ function cleanNumber(value) {
                 return;
             }
             try {
-                const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+                const res = await apiFetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
                 const pacientes = await res.json();
                 const lista = document.getElementById('listaPacientesArchivo');
                 if (pacientes.length === 0) {
@@ -1783,7 +1827,7 @@ function cleanNumber(value) {
                     formData.append('tipo', item.tipo);
                     formData.append('descripcion', item.descripcion);
                     formData.append('archivo', item.file);
-                    const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                    const res = await apiFetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
                     item.status = res.ok ? 'success' : 'error';
                 } catch (err) { item.status = 'error'; console.error(err); }
                 mostrarCola();
@@ -1800,7 +1844,7 @@ function cleanNumber(value) {
 
         async function cargarArchivosPaciente(pacienteId) {
             try {
-                const res = await fetch(`${API_URL}/api/archivos/${pacienteId}`);
+                const res = await apiFetch(`${API_URL}/api/archivos/${pacienteId}`);
                 const archivos = await res.json();
                 const container = document.getElementById('listaArchivosPaciente');
                 if (archivos.length === 0) { container.innerHTML = '<p style="color: #999;">Este paciente no tiene archivos registrados</p>'; return; }
@@ -1836,7 +1880,7 @@ function cleanNumber(value) {
         async function eliminarArchivo(archivoId, pacienteId) {
             if (!confirm('¿Está seguro de eliminar este archivo?')) return;
             try {
-                const res = await fetch(`${API_URL}/api/archivos/${archivoId}`, { method: 'DELETE' });
+                const res = await apiFetch(`${API_URL}/api/archivos/${archivoId}`, { method: 'DELETE' });
                 if (res.ok) { showAlert('Archivo eliminado'); cargarArchivosPaciente(pacienteId); }
                 else { showAlert('Error al eliminar archivo', 'error'); }
             } catch (err) { showAlert('Error al eliminar', 'error'); }
@@ -1871,7 +1915,7 @@ function cleanNumber(value) {
                 formData.append('descripcion', document.getElementById('descripcion_archivo_trad').value);
                 formData.append('archivo', fileInputTrad.files[0]);
                 try {
-                    const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                    const res = await apiFetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
                     if (res.ok) {
                         document.getElementById('uploadFormTradicional').reset();
                     } else {
@@ -1906,7 +1950,7 @@ function cleanNumber(value) {
                     formData.append('descripcion', document.getElementById('descripcion_archivo_trad').value);
                     formData.append('archivo', document.getElementById('file_input_trad').files[0]);
                     try {
-                        const res = await fetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
+                        const res = await apiFetch(`${API_URL}/api/archivos`, { method: 'POST', body: formData });
                         if (res.ok) { showAlert('Archivo subido correctamente'); formTrad.reset(); cargarArchivosPaciente(pacienteArchivoActual); }
                         else { const error = await res.json(); throw new Error(error.error || 'Error al subir'); }
                     } catch (err) { showAlert('Error al subir archivo: ' + err.message, 'error'); }
@@ -1918,7 +1962,7 @@ function cleanNumber(value) {
         // ========== CONFIGURACIÓN DE CONDICIONES/PRECIOS ==========
 async function cargarCondiciones() {
     try {
-        const res = await fetch(`${API_URL}/api/condiciones`);
+        const res = await apiFetch(`${API_URL}/api/condiciones`);
         condicionesPrecios = await res.json();
         mostrarCondiciones();
         actualizarSelectCondiciones();
@@ -1973,7 +2017,7 @@ async function agregarCondicion() {
     }
     
     try {
-        const res = await fetch(`${API_URL}/api/condiciones`, {
+        const res = await apiFetch(`${API_URL}/api/condiciones`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({nombre, precio: parseFloat(precio)})
@@ -2000,7 +2044,7 @@ async function editarCondicion(id) {
     if (nuevoPrecio === null) return;
     
     try {
-        const res = await fetch(`${API_URL}/api/condiciones/${id}`, {
+        const res = await apiFetch(`${API_URL}/api/condiciones/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({nombre: nuevoNombre, precio: parseFloat(nuevoPrecio)})
@@ -2018,7 +2062,7 @@ async function eliminarCondicion(id) {
     if (!confirm('¿Eliminar esta condición?')) return;
     
     try {
-        const res = await fetch(`${API_URL}/api/condiciones/${id}`, {method: 'DELETE'});
+        const res = await apiFetch(`${API_URL}/api/condiciones/${id}`, {method: 'DELETE'});
         
         if (res.ok) {
             showAlert('Condición eliminada');
@@ -2039,7 +2083,7 @@ async function filtrarPacientesAbono(query) {
         return;
     }
     try {
-        const res = await fetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`${API_URL}/api/buscar?q=${encodeURIComponent(query)}`);
         const pacientes = await res.json();
         const lista = document.getElementById('listaPacientesAbono');
         if (pacientes.length === 0) {
@@ -2100,7 +2144,7 @@ async function guardarAbono() {
     };
         
         try {
-            const res = await fetch(`${API_URL}/api/abonos`, {
+            const res = await apiFetch(`${API_URL}/api/abonos`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
@@ -2123,7 +2167,7 @@ async function guardarAbono() {
 
    async function cargarAbonosPaciente(pacienteId) {
     try {
-        const res = await fetch(`${API_URL}/api/abonos/paciente/${pacienteId}`);
+        const res = await apiFetch(`${API_URL}/api/abonos/paciente/${pacienteId}`);
         const abonos = await res.json();
         
         const container = document.getElementById('tablaAbonosPaciente');
@@ -2237,7 +2281,7 @@ async function agregarPagoAdicional() {
     }
     
         try {
-            const res = await fetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
+            const res = await apiFetch(`${API_URL}/api/abonos/${abonoSeleccionadoId}/pago`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({monto: parseFloat(monto)})
@@ -2257,7 +2301,7 @@ async function agregarPagoAdicional() {
     // ========== RESUMEN GENERAL ==========
 async function cargarResumenAbonos() {
     try {
-        const res = await fetch(`${API_URL}/api/abonos/resumen`);
+        const res = await apiFetch(`${API_URL}/api/abonos/resumen`);
         const data = await res.json();
         
         document.getElementById('totalPacientesConDeuda').textContent = data.pacientes_con_deuda;
@@ -2303,6 +2347,10 @@ async function cargarResumenAbonos() {
         console.error('Error cargando resumen:', err);
     }
 }
+                function cerrarSesion() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
+        }
 </script>
 </body>
 </html>
