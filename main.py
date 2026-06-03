@@ -308,26 +308,26 @@ def init_db():
 @app.route('/')
 @token_requerido
 def index():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     return render_template('index.html')
 
 @app.route('/admin')
 @token_requerido
 def admin():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     return render_template('admin.html')
 
 @app.route('/uploads/<path:filename>')
 @token_requerido
 def uploaded_file(filename):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ========== API: BÚSQUEDA ==========
 @app.route('/api/buscar')
 @token_requerido
 def buscar_paciente():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     query = request.args.get('q', '').strip().lower()
     
     if not query:
@@ -400,7 +400,7 @@ def buscar_paciente():
 @app.route('/api/pacientes', methods=['GET', 'POST'])
 @token_requerido
 def manejar_pacientes():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -488,7 +488,7 @@ def manejar_pacientes():
 @app.route('/api/pacientes/<int:paciente_id>', methods=['GET'])
 @token_requerido
 def obtener_paciente(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -544,7 +544,7 @@ def obtener_paciente(paciente_id):
 @app.route('/api/pacientes/<int:paciente_id>', methods=['DELETE'])
 @token_requerido
 def eliminar_paciente(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     """Mueve el paciente a la papelera (Soft Delete)"""
     conn = get_db()
     cursor = db.get_cursor(conn)
@@ -565,7 +565,7 @@ def eliminar_paciente(paciente_id):
 @app.route('/api/pacientes/eliminados', methods=['GET'])
 @token_requerido
 def ver_papelera():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     """Ver pacientes en la papelera"""
     conn = get_db()
     cursor = db.get_cursor(conn)
@@ -593,7 +593,7 @@ def restaurar_paciente(paciente_id):
 @app.route('/api/pacientes/<int:paciente_id>/permanente', methods=['DELETE'])
 @token_requerido
 def eliminar_permanente(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     """Borra definitivamente al paciente"""
     conn = get_db()
     cursor = db.get_cursor(conn)
@@ -610,7 +610,7 @@ def eliminar_permanente(paciente_id):
 @app.route('/api/consultas', methods=['POST'])
 @token_requerido
 def crear_consulta():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     data = request.get_json()
     conn = get_db()
     cursor = db.get_cursor(conn)
@@ -646,7 +646,7 @@ def crear_consulta():
 @app.route('/api/citas/disponibles', methods=['GET'])
 @token_requerido
 def horarios_disponibles():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     fecha = request.args.get('fecha')
     if not fecha:
         return jsonify({'error': 'Fecha requerida'}), 400
@@ -685,7 +685,7 @@ def horarios_disponibles():
 @app.route('/api/citas', methods=['POST'])
 @token_requerido
 def crear_cita():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     data = request.get_json()
     conn = get_db()
     cursor = db.get_cursor(conn)
@@ -735,7 +735,7 @@ def crear_cita():
 @app.route('/api/citas/paciente/<int:paciente_id>', methods=['GET'])
 @token_requerido
 def citas_paciente(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -753,7 +753,7 @@ def citas_paciente(paciente_id):
 @app.route('/api/archivos', methods=['POST'])
 @token_requerido
 def subir_archivo():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     if 'archivo' not in request.files:
         return jsonify({'error': 'No se envió archivo'}), 400
     
@@ -793,7 +793,7 @@ def subir_archivo():
 @app.route('/api/archivos/<int:paciente_id>', methods=['GET'])
 @token_requerido
 def listar_archivos(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -810,7 +810,7 @@ def listar_archivos(paciente_id):
 @app.route('/api/archivos/<int:archivo_id>', methods=['DELETE'])
 @token_requerido
 def eliminar_archivo(archivo_id):
-        """Panel admin protegido con JWT"""    
+    """Panel admin protegido con JWT"""    
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -834,7 +834,7 @@ def eliminar_archivo(archivo_id):
 @app.route('/api/estadisticas')
 @token_requerido
 def get_estadisticas():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -871,7 +871,7 @@ def get_estadisticas():
 @app.route('/api/debug/archivos')
 @token_requerido
 def debug_archivos():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     ruta = app.config['UPLOAD_FOLDER']
     archivos = os.listdir(ruta) if os.path.exists(ruta) else []
     return jsonify({
@@ -884,7 +884,7 @@ def debug_archivos():
 @app.route('/api/whatsapp/status', methods=['GET'])
 @token_requerido
 def whatsapp_status():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     stats = db.obtener_estadisticas_whatsapp()
     return jsonify({
         'status': 'active',
@@ -895,7 +895,7 @@ def whatsapp_status():
 @app.route('/api/whatsapp/mensajes', methods=['GET'])
 @token_requerido
 def whatsapp_mensajes():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -961,7 +961,7 @@ def manejar_condiciones():
 @app.route('/api/condiciones/<int:id>', methods=['PUT', 'DELETE'])
 @token_requerido
 def modificar_condicion(id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -1006,7 +1006,7 @@ def modificar_condicion(id):
 @app.route('/api/abonos', methods=['POST'])
 @token_requerido
 def crear_abono():
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     data = request.get_json()
     
     if not data:
@@ -1083,7 +1083,7 @@ def crear_abono():
 @app.route('/api/abonos/paciente/<int:paciente_id>', methods=['GET'])
 @token_requerido
 def abonos_paciente(paciente_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     conn = get_db()
     cursor = db.get_cursor(conn)
     
@@ -1102,7 +1102,7 @@ def abonos_paciente(paciente_id):
 @app.route('/api/abonos/<int:abono_id>/pago', methods=['POST'])
 @token_requerido
 def agregar_pago(abono_id):
-        """Panel admin protegido con JWT"""
+    """Panel admin protegido con JWT"""
     data = request.get_json()
     conn = get_db()
     cursor = db.get_cursor(conn)
